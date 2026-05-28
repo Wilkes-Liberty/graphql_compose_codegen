@@ -1,0 +1,19 @@
+services:
+  logger.channel.graphql_compose_codegen:
+    parent: 'logger.channel_base'
+    arguments: ['graphql_compose_codegen']
+
+  graphql_compose_codegen.schema_inspector:
+    class: Drupal\graphql_compose_codegen\Service\SchemaInspector
+    arguments:
+      - '@entity_type.bundle.info'
+      - '@entity_field.manager'
+      - '@config.factory'
+
+  graphql_compose_codegen.typescript_generator:
+    class: Drupal\graphql_compose_codegen\Service\TypeScriptGenerator
+    arguments:
+      - '@graphql_compose_codegen.schema_inspector'
+      - '@config.factory'
+
+

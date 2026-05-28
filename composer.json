@@ -1,0 +1,28 @@
+{
+    "name": "drupal/graphql_compose_codegen",
+    "description": "Drush-powered TypeScript and GraphQL scaffold generator for Next.js frontends driven by graphql_compose.",
+    "type": "drupal-module",
+    "license": "GPL-2.0-or-later",
+    "homepage": "https://www.drupal.org/project/graphql_compose_codegen",
+    "support": {
+        "issues": "https://www.drupal.org/project/issues/graphql_compose_codegen",
+        "source": "https://git.drupalcode.org/project/graphql_compose_codegen"
+    },
+    "require": {
+        "drupal/core": "^10.2 || ^11",
+        "drupal/graphql_compose": "^2.1",
+        "drush/drush": "^12 || ^13"
+    },
+    "suggest": {
+        "drupal/scheduler": "Exposes publish_on / unpublish_on fields that gqcc:inspect will type-map automatically."
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "extra": {
+        "drush": {
+            "services": [
+                "drush.services.yml"
+            ]
+        }
+    }
+}

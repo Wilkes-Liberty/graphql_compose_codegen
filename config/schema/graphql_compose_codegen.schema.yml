@@ -1,0 +1,16 @@
+graphql_compose_codegen.settings:
+  type: config_object
+  label: 'GraphQL Compose Codegen settings'
+  mapping:
+    base_type_fields:
+      type: sequence
+      label: 'Base type fields (skipped in per-bundle generated types)'
+      sequence:
+        type: string
+        label: 'Field name'
+    base_ts_type:
+      type: string
+      label: 'Shared base TypeScript type name'
+    output_dir:
+      type: string
+      label: 'Default output directory'

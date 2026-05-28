@@ -1,0 +1,41 @@
+####################################
+# Drupal CI for graphql_compose_codegen
+#
+# Uses the official Drupal CI template hosted on Drupal.org's GitLab.
+# See: https://git.drupalcode.org/project/gitlab_templates
+####################################
+
+include:
+  - project: $_GITLAB_TEMPLATES_REPO
+    ref: $_GITLAB_TEMPLATES_REF
+    file:
+      - '/includes/include.drupalci.main.yml'
+
+####################################
+# Variables
+####################################
+
+variables:
+  # Drupal core version to test against. Override in project CI/CD settings
+  # or per-branch to test multiple core versions.
+  _TARGET_PHP: "8.2"
+  _TARGET_CORE: "10.3.x"
+
+  # The Drupal project name — must match the machine name on drupal.org.
+  _PROJECT_NAME: "graphql_compose_codegen"
+
+  # Required contrib dependencies that are not in core.
+  # These are installed alongside the module under test.
+  _PHPUNIT_EXTRA_DEPENDENCIES: >-
+    drupal/graphql_compose:^2.1
+
+####################################
+# Optional: run against Drupal 11 too
+####################################
+
+# Uncomment to add a parallel D11 job:
+#
+# D11:
+#   extends: .default-job-config
+#   variables:
+#     _TARGET_CORE: "11.0.x"

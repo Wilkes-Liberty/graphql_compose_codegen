@@ -1,0 +1,11 @@
+name: 'GraphQL Compose Codegen'
+type: module
+description: >
+  Drush-powered TypeScript/GraphQL scaffold generator for Next.js frontends
+  driven by graphql_compose. Generates type definitions, GQL fragments, and
+  React component stubs from your Drupal content model — and logs notices
+  when bundles or fields change so nothing drifts silently.
+core_version_requirement: ^10 || ^11
+package: GraphQL Compose
+dependencies:
+  - graphql_compose:graphql_compose

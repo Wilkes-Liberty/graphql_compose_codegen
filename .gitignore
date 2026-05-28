@@ -1,0 +1,17 @@
+# Composer
+/vendor/
+composer.lock
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store
+*.swp
+*~
+
+# PHP testing
+/.phpunit.result.cache
+/.phpcs-cache
+
+# Internal docs (not shipped on d.o)
+/docs/superpowers/

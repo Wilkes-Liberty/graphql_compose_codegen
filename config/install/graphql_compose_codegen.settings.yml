@@ -1,0 +1,30 @@
+# graphql_compose_codegen default settings.
+#
+# Fields listed under base_type_fields are skipped when generating per-bundle
+# type definitions because they already belong to your shared base type
+# (NodeCommonFields or equivalent). Adjust this list to match your project.
+
+# Fields that live in your shared base TypeScript type and should NOT be
+# repeated in per-bundle generated types.
+base_type_fields:
+  - title
+  - path
+  - body
+  - field_summary
+  - field_hero_image
+  - field_social_image
+  - field_meta_description
+  - field_seo_title
+  - field_primary_cta
+  - field_secondary_cta
+  - field_breadcrumb_label
+  - field_industries
+  - field_personas
+  - field_target_sectors
+
+# Name of the shared base TypeScript type used in generated `extends` clauses.
+base_ts_type: NodeCommonFields
+
+# Default output directory for generated files (relative to Drupal root or
+# absolute). Leave empty to print to stdout unless --output-dir is supplied.
+output_dir: ''
