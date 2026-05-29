@@ -1,0 +1,11 @@
+services:
+  graphql_compose_codegen.commands:
+    class: Drupal\graphql_compose_codegen\Drush\Commands\CodegenCommands
+    arguments:
+      - '@graphql_compose_codegen.schema_inspector'
+      - '@graphql_compose_codegen.typescript_generator'
+      - '@graphql_compose_codegen.artefact_snapshot'
+      - '@graphql_compose_codegen.path_guard'
+      - '@module_handler'
+    tags:
+      - { name: drush.command }
