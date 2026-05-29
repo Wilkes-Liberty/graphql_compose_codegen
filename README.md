@@ -9,19 +9,30 @@ you can focus on the actual component logic.
 
 ## Features
 
-- **`drush gqcc:inspect`** — list every node bundle and its "extra" fields (fields not already in your shared base type).
+- **`drush gqcc:inspect`** — list every node (and paragraph) bundle and its "extra" fields (fields not already in your shared base type).
 - **`drush gqcc:generate`** — write four scaffold artefacts:
   - `types.generated.d.ts` — TypeScript type additions for `types/index.d.ts`
   - `fragments.generated.ts` — GraphQL inline fragments for `lib/queries/node-by-path.ts`
   - `node-renderer-cases.generated.tsx` — switch-case stubs for `NodeRenderer.tsx`
   - `components/{Name}.generated.tsx` — one bare React component stub per bundle
-- **Schema-change hooks** — logs a Drupal notice (visible at `/admin/reports/dblog`) whenever a node bundle or field is created or deleted, with the exact `drush gqcc:generate` command to run.
+- **`drush gqcc:diff`** — compare the current schema against the last generation snapshot.
+- **`drush gqcc:validate`** — verify scaffold files on disk are in sync with the live schema (useful in CI / pre-commit).
+- **Schema-change hooks** — logs a Drupal notice at `/admin/reports/dblog` whenever a node or paragraph bundle / field is created or deleted, with the exact `drush gqcc:generate` command to run.
+- **Pluggable field-type mappers** — other modules can register their own Drupal-type → TypeScript-type mappings via tagged plugins.
 
 ## Requirements
 
-- Drupal 10 or 11
-- `graphql_compose` module enabled
-- Drush 12+
+- Drupal 10.2 or 11
+- `graphql_compose` 2.1 or higher
+- Drush 12 or 13
+- PHP 8.1+
+
+### Why Drush is a hard dependency
+
+This module's entire user surface is Drush commands. The `drush/drush` package
+is in `require` (not `suggest`) because without it the module does nothing
+useful. If you cannot ship Drush in your project's `require` block, do not
+install this module.
 
 ## Installation
 
@@ -32,17 +43,8 @@ drush en graphql_compose_codegen
 
 ## Configuration
 
-Navigate to **Configuration → Development → GraphQL Compose Codegen** (or edit
-config directly):
-
-| Key | Default | Description |
-|-----|---------|-------------|
-| `base_type_fields` | `[title, path, body, field_summary, …]` | Fields in your shared base TypeScript type. Excluded from per-bundle output. |
-| `base_ts_type` | `NodeCommonFields` | Name of the shared base TS type. |
-| `output_dir` | _(empty)_ | Default output directory for generated files. Can be overridden with `--output-dir`. |
-
-Override the base type field list via `drush config:set` or by editing
-`graphql_compose_codegen.settings` in your config management workflow:
+Configure via `drush config:set` or by editing
+`graphql_compose_codegen.settings.yml` in your config sync directory:
 
 ```yaml
 # config/sync/graphql_compose_codegen.settings.yml
@@ -56,6 +58,12 @@ base_ts_type: NodeCommonFields
 output_dir: '../ui'   # relative to Drupal root — or use an absolute path
 ```
 
+| Key | Default | Description |
+|-----|---------|-------------|
+| `base_type_fields` | `[title, path, body, field_summary, …]` | Fields in your shared base TypeScript type. Excluded from per-bundle output. |
+| `base_ts_type` | `NodeCommonFields` | Name of the shared base TS type. |
+| `output_dir` | _(empty)_ | Default output directory. Can be overridden with `--output-dir`. |
+
 ## Workflow
 
 ### Inspecting the schema
@@ -64,9 +72,6 @@ output_dir: '../ui'   # relative to Drupal root — or use an absolute path
 drush gqcc:inspect
 drush gqcc:inspect --bundles=platform,service
 ```
-
-This shows every node bundle with its extra fields (name, GQL field name,
-TypeScript type) so you can see at a glance whether your TS files are current.
 
 ### Generating scaffold files
 
@@ -85,6 +90,9 @@ drush gqcc:generate --output-dir=../ui --overwrite
 
 # Skip fields that are being handled elsewhere:
 drush gqcc:generate --skip-fields=field_components,field_paragraphs
+
+# Preview without writing:
+drush gqcc:generate --output-dir=../ui --dry-run
 ```
 
 ### Integrating the scaffold
@@ -94,60 +102,86 @@ land in `../ui/generated/`. Integrate them manually:
 
 1. **`types.generated.d.ts`** — copy each new `export type Drupal*` block into
    `types/index.d.ts`, and add the new type name to the `DrupalNode` union.
-
 2. **`fragments.generated.ts`** — copy each `... on NodeFoo { }` block into the
    `NODE_BY_PATH_QUERY` template literal in `lib/queries/node-by-path.ts`.
-
 3. **`node-renderer-cases.generated.tsx`** — add the import line and switch case
    for each bundle into `components/drupal/NodeRenderer.tsx`.
-
 4. **`components/{Name}.generated.tsx`** — rename to `{Name}.tsx`, move to
    `components/drupal/`, and implement the actual component layout.
 
-The scaffold files in `generated/` are intentionally ignored by TypeScript
-(they have a `.generated` suffix and are not referenced anywhere). Delete them
-once you have integrated the code you need.
+The scaffold files in `generated/` are intentionally suffixed `.generated`
+and not referenced anywhere. Delete them once you have integrated the code
+you need.
+
+### Drift detection in CI
+
+```bash
+# Exits non-zero if scaffold files on disk are out of sync with the live schema.
+drush gqcc:validate --output-dir=../ui
+```
 
 ### Automatic notifications
 
-When a content editor or developer creates a new node bundle or adds/removes a
-field via the Drupal admin UI, the module logs a structured notice at
-`/admin/reports/dblog` with the exact command to run. No polling; it fires via
-Drupal entity lifecycle hooks.
+When a content editor or developer creates a new node or paragraph bundle, or
+adds/removes a field via the Drupal admin UI, the module logs a structured
+notice at `/admin/reports/dblog` with the exact command to run.
+
+## Comparison to existing modules
+
+| Module | What it does | How `graphql_compose_codegen` differs |
+|---|---|---|
+| [typescript_generator](https://www.drupal.org/project/typescript_generator) | TS types for Drupal entity *internals* (`FieldItemList<IntegerItem>` style). | This module emits the *client-facing* shape that graphql_compose actually returns over the wire. |
+| [nextgen](https://www.drupal.org/project/nextgen) | Next.js component/page scaffolding from **JSON:API** via Drush Code Generator. | This module is graphql_compose-aware (not JSON:API) and emits TypeScript types + fragments alongside components. |
+| [graphql_compose_fragments](https://www.drupal.org/project/graphql_compose_fragments) | GraphQL fragments exposed inside the schema's `_info` query (runtime, server-side). | This module emits fragments to disk for direct merge into hand-written queries, plus TypeScript types and React stubs. |
+| [graphql_export](https://www.drupal.org/project/graphql_export) | Exports raw `.graphqls` / introspection JSON to disk for npm `graphql-codegen`. | Complementary, not a duplicate. This module is opinionated for the graphql_compose + Next.js stack and emits ready-to-merge code, not raw schema. |
+
+This module is intentionally narrow: graphql_compose + Next.js + React. If
+you're on a different stack, the modules above may serve you better.
 
 ## Architecture
 
 ```
 graphql_compose_codegen/
-├── graphql_compose_codegen.module         # hooks: bundle_create/delete, field_storage_*
-├── graphql_compose_codegen.services.yml   # service registrations
+├── graphql_compose_codegen.module         # hooks: bundle_create/delete, field_config_*, help, requirements
+├── graphql_compose_codegen.services.yml   # service + plugin manager registrations
+├── graphql_compose_codegen.routing.yml    # settings form route
+├── graphql_compose_codegen.links.menu.yml # menu entry under Config → Development
+├── graphql_compose_codegen.permissions.yml
+├── graphql_compose_codegen.api.php        # hook documentation
 ├── config/
 │   ├── install/graphql_compose_codegen.settings.yml
 │   └── schema/graphql_compose_codegen.schema.yml
 └── src/
-    ├── Commands/CodegenCommands.php       # Drush commands (gqcc:inspect, gqcc:generate)
+    ├── Attribute/FieldTypeMapper.php       # plugin attribute
+    ├── Commands/CodegenCommands.php        # Drush 12+ attribute commands
+    ├── Form/SettingsForm.php
+    ├── Plugin/FieldTypeMapper/             # default field-type mapper plugins
+    ├── PluginManager/FieldTypeMapperManager.php
     └── Service/
-        ├── SchemaInspector.php            # bundle/field introspection + type mapping
-        └── TypeScriptGenerator.php        # artefact generation (types, fragments, stubs)
+        ├── SchemaInspector.php
+        ├── TypeScriptGenerator.php
+        ├── ArtefactSnapshot.php
+        └── PathGuard.php
 ```
 
-### Field type mapping
+## Extending the field-type mapper
 
-`SchemaInspector::FIELD_TYPE_MAP` maps Drupal field type plugin IDs to TypeScript
-strings. Entity reference fields are resolved by `target_type` (taxonomy_term →
-`TaxonomyTermRef`, node → `RelatedNode`, media → `DrupalMedia`, paragraph →
-`DrupalParagraph[]`). Unknown types are flagged with `unknown` so you can
-handle them manually.
+Other modules can register custom mappers via the attribute-based plugin
+system. See `graphql_compose_codegen.api.php` for `hook_graphql_compose_codegen_pre_generate`
+/ `hook_graphql_compose_codegen_post_generate` documentation and the
+`#[FieldTypeMapper]` attribute.
 
-### Base type fields
+## Roadmap (v1.1+)
 
-Fields in `base_type_fields` config are excluded from per-bundle output because
-they already belong to the shared TypeScript type. This mirrors the
-`NodeCommonFields` pattern used by `next-drupal` and `graphql_compose_next`.
+These were considered for v1.0 and deferred:
 
-## Contributing
+- Runtime validation output (Zod / Valibot / Yup `.schema.ts` files)
+- `gqcc:watch` daemon mode
+- Storybook / Vitest stub generation per bundle
+- Vue / Svelte / Astro / Solid component variants (would require a template plugin system)
+- Schema.org Blueprints integration
 
-Issues and merge requests welcome at
+Issues and merge requests at
 [drupal.org/project/graphql_compose_codegen](https://www.drupal.org/project/graphql_compose_codegen).
 
 ## License
