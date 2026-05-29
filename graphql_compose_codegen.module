@@ -4,23 +4,114 @@
  * @file
  * Hooks for graphql_compose_codegen.
  *
- * Watches for content-model changes (new bundles, new/removed field storages)
- * and logs actionable notices so developers know when to re-run
+ * Watches for content-model changes (new bundles, new/removed fields) and
+ * logs actionable notices so developers know when to re-run
  * `drush gqcc:generate`.
+ *
+ * Also provides hook_help and hook_requirements for the standard
+ * Drupal admin surfaces.
  */
 
 declare(strict_types=1);
+
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\field\FieldConfigInterface;
+
+/**
+ * Implements hook_help().
+ */
+function graphql_compose_codegen_help(string $route_name, RouteMatchInterface $route_match): ?string {
+  if ($route_name !== 'help.page.graphql_compose_codegen') {
+    return NULL;
+  }
+  $output = '';
+  $output .= '<h2>' . t('About') . '</h2>';
+  $output .= '<p>' . t('GraphQL Compose Codegen is a Drush-powered TypeScript and GraphQL scaffold generator for Next.js frontends driven by the GraphQL Compose module.') . '</p>';
+  $output .= '<h2>' . t('Commands') . '</h2>';
+  $output .= '<dl>';
+  $output .= '<dt><code>drush gqcc:inspect</code></dt>';
+  $output .= '<dd>' . t('List every node bundle and its extra (non-base-type) fields.') . '</dd>';
+  $output .= '<dt><code>drush gqcc:generate</code></dt>';
+  $output .= '<dd>' . t('Write scaffold artefacts (TypeScript types, GraphQL fragments, NodeRenderer cases, per-bundle component stubs) to a Next.js project.') . '</dd>';
+  $output .= '<dt><code>drush gqcc:diff</code></dt>';
+  $output .= '<dd>' . t('Compare the current schema against the last generation snapshot.') . '</dd>';
+  $output .= '<dt><code>drush gqcc:validate</code></dt>';
+  $output .= '<dd>' . t('Verify that scaffold files on disk are in sync with the live schema.') . '</dd>';
+  $output .= '</dl>';
+  $output .= '<p>' . t('Configure default behaviour at <a href=":url">Configuration → Development → GraphQL Compose Codegen</a>.', [
+    ':url' => '/admin/config/development/graphql-compose-codegen',
+  ]) . '</p>';
+  return $output;
+}
+
+/**
+ * Implements hook_requirements().
+ */
+function graphql_compose_codegen_requirements(string $phase): array {
+  if ($phase !== 'runtime') {
+    return [];
+  }
+  $requirements = [];
+
+  /** @var \Drupal\Core\Entity\EntityTypeBundleInfoInterface $bundleInfo */
+  $bundleInfo = \Drupal::service('entity_type.bundle.info');
+  $nodeBundles = $bundleInfo->getBundleInfo('node');
+
+  if (empty($nodeBundles)) {
+    $requirements['graphql_compose_codegen_bundles'] = [
+      'title' => t('GraphQL Compose Codegen'),
+      'value' => t('No node bundles found'),
+      'description' => t('Create at least one node bundle to use graphql_compose_codegen.'),
+      'severity' => REQUIREMENT_WARNING,
+    ];
+  }
+
+  // Verify configured base_type_fields actually exist on at least one node
+  // bundle. Stale entries are non-fatal but worth flagging.
+  $config = \Drupal::config('graphql_compose_codegen.settings');
+  $configured = (array) ($config->get('base_type_fields') ?? []);
+  if (!empty($nodeBundles) && !empty($configured)) {
+    /** @var \Drupal\Core\Entity\EntityFieldManagerInterface $fieldManager */
+    $fieldManager = \Drupal::service('entity_field.manager');
+    $seen = [];
+    foreach (array_keys($nodeBundles) as $bundle) {
+      foreach (array_keys($fieldManager->getFieldDefinitions('node', $bundle)) as $name) {
+        $seen[$name] = TRUE;
+      }
+    }
+    $stale = array_values(array_diff($configured, array_keys($seen)));
+    if ($stale) {
+      $requirements['graphql_compose_codegen_stale_base_fields'] = [
+        'title' => t('GraphQL Compose Codegen — stale base type fields'),
+        'value' => t('@count stale entries', ['@count' => count($stale)]),
+        'description' => t('These fields are listed in <code>base_type_fields</code> but do not exist on any node bundle: @list', [
+          '@list' => implode(', ', $stale),
+        ]),
+        'severity' => REQUIREMENT_WARNING,
+      ];
+    }
+  }
+
+  return $requirements;
+}
 
 /**
  * Implements hook_entity_bundle_create().
  */
 function graphql_compose_codegen_entity_bundle_create(string $entity_type_id, string $bundle): void {
-  if ($entity_type_id !== 'node') {
+  if (!in_array($entity_type_id, ['node', 'paragraph'], TRUE)) {
     return;
   }
+  $tip = $entity_type_id === 'node'
+    ? 'drush gqcc:generate --bundles=' . $bundle . ' --output-dir=/path/to/nextjs'
+    : 'drush gqcc:generate --output-dir=/path/to/nextjs  # paragraph bundles regenerate together';
   \Drupal::logger('graphql_compose_codegen')->notice(
-    'New node bundle "@bundle" created. Run <code>drush gqcc:generate --bundles=@bundle --output-dir=/path/to/nextjs</code> to scaffold TypeScript types, GraphQL fragments, and a component stub.',
-    ['@bundle' => $bundle]
+    'New @type bundle "@bundle" created. Run <code>@tip</code> to scaffold TypeScript types, GraphQL fragments, and a component stub.',
+    [
+      '@type' => $entity_type_id,
+      '@bundle' => $bundle,
+      '@tip' => $tip,
+    ]
   );
 }
 
@@ -28,42 +119,54 @@ function graphql_compose_codegen_entity_bundle_create(string $entity_type_id, st
  * Implements hook_entity_bundle_delete().
  */
 function graphql_compose_codegen_entity_bundle_delete(string $entity_type_id, string $bundle): void {
-  if ($entity_type_id !== 'node') {
+  if (!in_array($entity_type_id, ['node', 'paragraph'], TRUE)) {
     return;
   }
   \Drupal::logger('graphql_compose_codegen')->warning(
-    'Node bundle "@bundle" deleted. Manually remove the corresponding TypeScript type from <code>types/index.d.ts</code>, the inline fragment from <code>node-by-path.ts</code>, and the NodeRenderer case.',
-    ['@bundle' => $bundle]
-  );
-}
-
-/**
- * Implements hook_field_storage_config_insert().
- */
-function graphql_compose_codegen_field_storage_config_insert(\Drupal\field\FieldStorageConfigInterface $field_storage): void {
-  if ($field_storage->getTargetEntityTypeId() !== 'node') {
-    return;
-  }
-  $bundles = implode(',', array_keys($field_storage->getBundles()));
-  \Drupal::logger('graphql_compose_codegen')->notice(
-    'New field "@field" (@type) added to bundle(s) [@bundles]. Run <code>drush gqcc:generate --bundles=@bundles --output-dir=/path/to/nextjs --overwrite</code> to update scaffolding.',
+    '@type bundle "@bundle" deleted. Manually remove the corresponding TypeScript type, the inline fragment, and the NodeRenderer case from your Next.js project.',
     [
-      '@field' => $field_storage->getName(),
-      '@type' => $field_storage->getType(),
-      '@bundles' => $bundles,
+      '@type' => ucfirst($entity_type_id),
+      '@bundle' => $bundle,
     ]
   );
 }
 
 /**
- * Implements hook_field_storage_config_delete().
+ * Implements hook_field_config_insert().
  */
-function graphql_compose_codegen_field_storage_config_delete(\Drupal\field\FieldStorageConfigInterface $field_storage): void {
-  if ($field_storage->getTargetEntityTypeId() !== 'node') {
+function graphql_compose_codegen_field_config_insert(FieldConfigInterface $field_config): void {
+  $entity_type = $field_config->getTargetEntityTypeId();
+  if (!in_array($entity_type, ['node', 'paragraph'], TRUE)) {
     return;
   }
+  $bundle = $field_config->getTargetBundle();
+  $type = $field_config->getFieldStorageDefinition()->getType();
+  \Drupal::logger('graphql_compose_codegen')->notice(
+    'New field "@field" (@field_type) added to @entity_type bundle "@bundle". Run <code>drush gqcc:generate --bundles=@bundle --output-dir=/path/to/nextjs --overwrite</code> to update scaffolding.',
+    [
+      '@field' => $field_config->getName(),
+      '@field_type' => $type,
+      '@entity_type' => $entity_type,
+      '@bundle' => $bundle,
+    ]
+  );
+}
+
+/**
+ * Implements hook_field_config_delete().
+ */
+function graphql_compose_codegen_field_config_delete(FieldConfigInterface $field_config): void {
+  $entity_type = $field_config->getTargetEntityTypeId();
+  if (!in_array($entity_type, ['node', 'paragraph'], TRUE)) {
+    return;
+  }
+  $bundle = $field_config->getTargetBundle();
   \Drupal::logger('graphql_compose_codegen')->warning(
-    'Field storage "@field" deleted. Manually remove references from TypeScript types and GraphQL fragments in your Next.js project.',
-    ['@field' => $field_storage->getName()]
+    'Field "@field" removed from @entity_type bundle "@bundle". Manually remove references from TypeScript types and GraphQL fragments in your Next.js project.',
+    [
+      '@field' => $field_config->getName(),
+      '@entity_type' => $entity_type,
+      '@bundle' => $bundle,
+    ]
   );
 }
