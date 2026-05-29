@@ -15,7 +15,7 @@ final class PathGuard {
   /**
    * Paths the guard always rejects, regardless of allowExternal.
    */
-  private const ALWAYS_REJECT = ['/', '/etc', '/usr', '/var', '/root', '/home'];
+  private const ALWAYS_REJECT = ['/', '/etc', '/usr', '/var', '/tmp', '/root', '/home'];
 
   /**
    * Constructs a PathGuard.
@@ -57,8 +57,8 @@ final class PathGuard {
     $resolved = realpath($absolute) ?: $this->lexicalNormalise($absolute);
 
     foreach (self::ALWAYS_REJECT as $bad) {
-      if ($resolved === $bad || str_starts_with($resolved . '/', $bad . '/')) {
-        throw new \InvalidArgumentException("Refusing to write under '{$bad}'.");
+      if ($resolved === $bad) {
+        throw new \InvalidArgumentException("Refusing to write at '{$bad}' (dangerous filesystem root).");
       }
     }
 
