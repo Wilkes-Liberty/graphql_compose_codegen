@@ -1,0 +1,5 @@
+graphql_compose_codegen.settings_form:
+  title: 'GraphQL Compose Codegen'
+  description: 'Configure scaffold generation for Next.js frontends.'
+  parent: system.admin_config_development
+  route_name: graphql_compose_codegen.settings_form
