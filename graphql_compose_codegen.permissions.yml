@@ -1,0 +1,4 @@
+administer graphql_compose_codegen:
+  title: 'Administer GraphQL Compose Codegen'
+  description: 'Configure base type fields, base TS type name, and default output directory.'
+  restrict access: true
