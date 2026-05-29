@@ -13,6 +13,9 @@ use Drupal\graphql_compose_codegen\Attribute\FieldTypeMapper;
 #[FieldTypeMapper(id: 'link', drupalTypes: ['link'])]
 final class LinkMapper extends FieldTypeMapperBase {
 
+  /**
+   * {@inheritdoc}
+   */
   protected function getBaseTsType(FieldDefinitionInterface $definition): string {
     return 'Link';
   }

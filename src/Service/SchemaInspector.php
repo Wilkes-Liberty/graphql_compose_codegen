@@ -58,27 +58,71 @@ final class SchemaInspector {
     private readonly FieldTypeMapperManager $mapperManager,
   ) {}
 
-  // ── Node bundle helpers ─────────────────────────────────────────────────
-
+  /**
+   * Returns all node bundles, optionally filtered by bundle ID.
+   *
+   * @param string[] $only
+   *   If non-empty, only these bundle IDs are returned.
+   *
+   * @return array<string, mixed>
+   *   Bundle info keyed by bundle machine name.
+   */
   public function getBundles(array $only = []): array {
     $all = $this->bundleInfo->getBundleInfo('node');
     return $only ? array_intersect_key($all, array_flip($only)) : $all;
   }
 
+  /**
+   * Returns the GraphQL type name for a node bundle.
+   *
+   * @param string $bundle
+   *   The bundle machine name.
+   *
+   * @return string
+   *   The GraphQL type name (e.g. NodeArticle).
+   */
   public function getGraphQlTypeName(string $bundle): string {
     return 'Node' . str_replace('_', '', ucwords($bundle, '_'));
   }
 
+  /**
+   * Returns the TypeScript type name for a node bundle.
+   *
+   * @param string $bundle
+   *   The bundle machine name.
+   *
+   * @return string
+   *   The TypeScript type name (e.g. DrupalArticle).
+   */
   public function getTsTypeName(string $bundle): string {
     return 'Drupal' . str_replace('_', '', ucwords($bundle, '_'));
   }
 
+  /**
+   * Returns extra fields for a node bundle, filtered by skip lists.
+   *
+   * @param string $bundle
+   *   The bundle machine name.
+   * @param string[] $additionalSkip
+   *   Extra field names to exclude.
+   *
+   * @return array<string, mixed>
+   *   Field descriptor arrays keyed by field machine name.
+   */
   public function getFieldsForBundle(string $bundle, array $additionalSkip = []): array {
     return $this->collectFields('node', $bundle, self::SKIP_BASE_FIELDS, $additionalSkip);
   }
 
-  // ── Paragraph bundle helpers ────────────────────────────────────────────
-
+  /**
+   * Returns all paragraph bundles, optionally filtered by bundle ID.
+   *
+   * @param string[] $only
+   *   If non-empty, only these bundle IDs are returned.
+   *
+   * @return array<string, mixed>
+   *   Bundle info keyed by bundle machine name, or empty if paragraphs
+   *   module is not installed.
+   */
   public function getParagraphBundles(array $only = []): array {
     $all = $this->bundleInfo->getBundleInfo('paragraph');
     if (!$all) {
@@ -87,20 +131,56 @@ final class SchemaInspector {
     return $only ? array_intersect_key($all, array_flip($only)) : $all;
   }
 
+  /**
+   * Returns the GraphQL type name for a paragraph bundle.
+   *
+   * @param string $bundle
+   *   The bundle machine name.
+   *
+   * @return string
+   *   The GraphQL type name (e.g. ParagraphHero).
+   */
   public function getGraphQlTypeNameForParagraph(string $bundle): string {
     return 'Paragraph' . str_replace('_', '', ucwords($bundle, '_'));
   }
 
+  /**
+   * Returns the TypeScript type name for a paragraph bundle.
+   *
+   * @param string $bundle
+   *   The bundle machine name.
+   *
+   * @return string
+   *   The TypeScript type name (e.g. DrupalParagraphHero).
+   */
   public function getTsTypeNameForParagraph(string $bundle): string {
     return 'DrupalParagraph' . str_replace('_', '', ucwords($bundle, '_'));
   }
 
+  /**
+   * Returns extra fields for a paragraph bundle, filtered by skip lists.
+   *
+   * @param string $bundle
+   *   The bundle machine name.
+   * @param string[] $additionalSkip
+   *   Extra field names to exclude.
+   *
+   * @return array<string, mixed>
+   *   Field descriptor arrays keyed by field machine name.
+   */
   public function getFieldsForParagraphBundle(string $bundle, array $additionalSkip = []): array {
     return $this->collectFields('paragraph', $bundle, self::SKIP_PARAGRAPH_BASE_FIELDS, $additionalSkip);
   }
 
-  // ── Shared ──────────────────────────────────────────────────────────────
-
+  /**
+   * Converts a Drupal field machine name to its camelCase GQL field name.
+   *
+   * @param string $fieldName
+   *   The Drupal field machine name.
+   *
+   * @return string
+   *   The camelCase GQL field name (field_ prefix stripped).
+   */
   public function toGqlFieldName(string $fieldName): string {
     if (!str_starts_with($fieldName, 'field_')) {
       return $fieldName;
@@ -110,14 +190,33 @@ final class SchemaInspector {
   }
 
   /**
-   * Maps a field definition to its TypeScript type string via the plugin manager.
+   * Maps a field definition to its TypeScript type string.
+   *
+   * @param \Drupal\Core\Field\FieldDefinitionInterface $definition
+   *   The field definition.
+   *
+   * @return string
+   *   The TypeScript type string.
    */
   public function mapFieldType(FieldDefinitionInterface $definition): string {
     return $this->mapperManager->mapDefinition($definition);
   }
 
-  // ── Internal ────────────────────────────────────────────────────────────
-
+  /**
+   * Collects field descriptors for a given entity type and bundle.
+   *
+   * @param string $entityType
+   *   The entity type ID (e.g. 'node', 'paragraph').
+   * @param string $bundle
+   *   The bundle machine name.
+   * @param string[] $baseSkip
+   *   Base fields always excluded for this entity type.
+   * @param string[] $additionalSkip
+   *   Extra field names to exclude for this call.
+   *
+   * @return array<string, mixed>
+   *   Field descriptor arrays keyed by field machine name.
+   */
   private function collectFields(string $entityType, string $bundle, array $baseSkip, array $additionalSkip): array {
     $config = $this->configFactory->get('graphql_compose_codegen.settings');
     $skipList = array_unique(array_merge(

@@ -27,6 +27,9 @@ use Drupal\graphql_compose_codegen\Attribute\FieldTypeMapper;
 )]
 final class TextMapper extends FieldTypeMapperBase {
 
+  /**
+   * {@inheritdoc}
+   */
   protected function getBaseTsType(FieldDefinitionInterface $definition): string {
     return match ($definition->getType()) {
       'text', 'text_long', 'text_with_summary' => 'ProcessedText',

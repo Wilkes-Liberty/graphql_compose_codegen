@@ -72,6 +72,7 @@ class FieldTypeMapperManager extends DefaultPluginManager {
    * earlier ones via the standard plugin alter hook).
    *
    * @return array<string, string>
+   *   Drupal field type IDs mapped to mapper plugin IDs.
    */
   private function indexByType(): array {
     if ($this->typeIndex !== NULL) {

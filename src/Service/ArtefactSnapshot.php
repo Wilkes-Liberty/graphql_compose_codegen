@@ -49,6 +49,7 @@ final class ArtefactSnapshot {
    * Returns the last snapshot, or NULL if none recorded.
    *
    * @return array{recorded_at: int, hashes: array<string, string>}|null
+   *   The snapshot data, or NULL if no snapshot has been recorded.
    */
   public function load(): ?array {
     $raw = $this->state->get(self::STATE_KEY);
@@ -62,6 +63,7 @@ final class ArtefactSnapshot {
    *   Relative path → file content.
    *
    * @return array{added: string[], removed: string[], changed: string[]}
+   *   Arrays of relative paths added, removed, or changed.
    */
   public function diff(array $current): array {
     $snapshot = $this->load();
@@ -92,6 +94,7 @@ final class ArtefactSnapshot {
    *   Relative path → expected file content.
    *
    * @return array{missing: string[], extra: string[], stale: string[]}
+   *   Arrays of relative paths that are missing, extra, or stale on disk.
    */
   public function compareDisk(string $genDir, array $current): array {
     $missing = [];

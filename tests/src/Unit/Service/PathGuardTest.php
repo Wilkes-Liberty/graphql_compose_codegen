@@ -14,8 +14,16 @@ use PHPUnit\Framework\TestCase;
  */
 final class PathGuardTest extends TestCase {
 
+  /**
+   * Temporary root directory for the test file system.
+   *
+   * @var string
+   */
   private string $tmpRoot;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
     $this->tmpRoot = sys_get_temp_dir() . '/gqcc-pathguard-' . bin2hex(random_bytes(4));
@@ -23,40 +31,54 @@ final class PathGuardTest extends TestCase {
     mkdir($this->tmpRoot . '/ui', 0700, TRUE);
   }
 
+  /**
+   * {@inheritdoc}
+   */
   protected function tearDown(): void {
     exec('rm -rf ' . escapeshellarg($this->tmpRoot));
     parent::tearDown();
   }
 
+  /**
+   * Returns a PathGuard with the test web root.
+   *
+   * @return \Drupal\graphql_compose_codegen\Service\PathGuard
+   *   The guard instance.
+   */
   private function guard(): PathGuard {
     return new PathGuard($this->tmpRoot . '/web');
   }
 
-  /** @covers ::validate */
+  /**
+   * @covers ::validate */
   public function testAllowsPathInsideProjectRoot(): void {
     $this->guard()->validate($this->tmpRoot . '/ui');
     $this->expectNotToPerformAssertions();
   }
 
-  /** @covers ::validate */
+  /**
+   * @covers ::validate */
   public function testRejectsAbsolutePathOutsideProjectRoot(): void {
     $this->expectException(\InvalidArgumentException::class);
     $this->guard()->validate('/etc');
   }
 
-  /** @covers ::validate */
+  /**
+   * @covers ::validate */
   public function testRejectsDotDot(): void {
     $this->expectException(\InvalidArgumentException::class);
     $this->guard()->validate($this->tmpRoot . '/web/../../escape');
   }
 
-  /** @covers ::validate */
+  /**
+   * @covers ::validate */
   public function testRejectsFilesystemRoot(): void {
     $this->expectException(\InvalidArgumentException::class);
     $this->guard()->validate('/');
   }
 
-  /** @covers ::validate */
+  /**
+   * @covers ::validate */
   public function testRejectsArbitraryPathOutsideProjectRoot(): void {
     // Create a directory that is NOT in ALWAYS_REJECT and NOT under the
     // project root, to exercise the "outside project root" rejection branch.
@@ -71,7 +93,8 @@ final class PathGuardTest extends TestCase {
     }
   }
 
-  /** @covers ::validate */
+  /**
+   * @covers ::validate */
   public function testAllowExternalBypassesProjectRootCheck(): void {
     $external = sys_get_temp_dir() . '/gqcc-external-' . bin2hex(random_bytes(4));
     mkdir($external, 0700);
@@ -84,13 +107,15 @@ final class PathGuardTest extends TestCase {
     }
   }
 
-  /** @covers ::validate */
+  /**
+   * @covers ::validate */
   public function testAllowExternalStillRejectsDotDot(): void {
     $this->expectException(\InvalidArgumentException::class);
     $this->guard()->validate($this->tmpRoot . '/web/../../escape', allowExternal: TRUE);
   }
 
-  /** @covers ::validate */
+  /**
+   * @covers ::validate */
   public function testAllowExternalStillRejectsDangerousRoots(): void {
     $this->expectException(\InvalidArgumentException::class);
     $this->guard()->validate('/etc', allowExternal: TRUE);

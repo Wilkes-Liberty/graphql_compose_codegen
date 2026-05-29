@@ -16,6 +16,9 @@ use Drupal\graphql_compose_codegen\Attribute\FieldTypeMapper;
 )]
 final class DateMapper extends FieldTypeMapperBase {
 
+  /**
+   * {@inheritdoc}
+   */
   protected function getBaseTsType(FieldDefinitionInterface $definition): string {
     return $definition->getType() === 'smartdate' ? 'SmartDate' : 'string';
   }

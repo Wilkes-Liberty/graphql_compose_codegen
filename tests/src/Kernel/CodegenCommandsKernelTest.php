@@ -16,6 +16,11 @@ use Drupal\node\Entity\NodeType;
  */
 final class CodegenCommandsKernelTest extends KernelTestBase {
 
+  /**
+   * {@inheritdoc}
+   *
+   * @var string[]
+   */
   protected static $modules = [
     'system',
     'user',
@@ -25,6 +30,9 @@ final class CodegenCommandsKernelTest extends KernelTestBase {
     'graphql_compose_codegen',
   ];
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('node');
@@ -49,6 +57,9 @@ final class CodegenCommandsKernelTest extends KernelTestBase {
     ])->save();
   }
 
+  /**
+   * Tests that type definitions include the fields from the demo bundle.
+   */
   public function testTypeDefinitionsIncludeBundleFields(): void {
     /** @var \Drupal\graphql_compose_codegen\Service\TypeScriptGenerator $gen */
     $gen = $this->container->get('graphql_compose_codegen.typescript_generator');
@@ -59,6 +70,9 @@ final class CodegenCommandsKernelTest extends KernelTestBase {
     self::assertStringContainsString('tagline: string', $out);
   }
 
+  /**
+   * Tests that fragments include the spread for the demo bundle.
+   */
   public function testFragmentsIncludeBundleSpread(): void {
     /** @var \Drupal\graphql_compose_codegen\Service\TypeScriptGenerator $gen */
     $gen = $this->container->get('graphql_compose_codegen.typescript_generator');

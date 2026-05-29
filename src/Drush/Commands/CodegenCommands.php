@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\graphql_compose_codegen\Drush\Commands;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\graphql_compose_codegen\Service\ArtefactSnapshot;
 use Drupal\graphql_compose_codegen\Service\PathGuard;
@@ -33,6 +34,8 @@ final class CodegenCommands extends DrushCommands {
    *   The output-dir safety guard.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $moduleHandler
    *   The module handler.
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
+   *   The config factory.
    */
   public function __construct(
     private readonly SchemaInspector $inspector,
@@ -40,12 +43,14 @@ final class CodegenCommands extends DrushCommands {
     private readonly ArtefactSnapshot $snapshot,
     private readonly PathGuard $pathGuard,
     private readonly ModuleHandlerInterface $moduleHandler,
+    private readonly ConfigFactoryInterface $configFactory,
   ) {
     parent::__construct();
   }
 
-  // ── gqcc:inspect ────────────────────────────────────────────────────────
-
+  /**
+   * Lists all node bundles and their extra (non-base-type) fields.
+   */
   #[CLI\Command(
     name: 'graphql-compose-codegen:inspect',
     aliases: ['gqcc:inspect', 'gqcc:i'],
@@ -78,8 +83,9 @@ final class CodegenCommands extends DrushCommands {
     ));
   }
 
-  // ── gqcc:generate ───────────────────────────────────────────────────────
-
+  /**
+   * Generates TypeScript scaffold artefacts for node bundles.
+   */
   #[CLI\Command(
     name: 'graphql-compose-codegen:generate',
     aliases: ['gqcc:generate', 'gqcc:gen'],
@@ -93,14 +99,16 @@ final class CodegenCommands extends DrushCommands {
   #[CLI\Usage(name: 'drush gqcc:generate', description: 'Print scaffold for all bundles to stdout.')]
   #[CLI\Usage(name: 'drush gqcc:generate --output-dir=../ui', description: 'Write scaffold to ../ui/generated/.')]
   #[CLI\Usage(name: 'drush gqcc:generate --output-dir=../ui --dry-run', description: 'Preview without writing.')]
-  public function generate(array $options = [
-    'bundles' => '',
-    'output-dir' => '',
-    'overwrite' => FALSE,
-    'skip-fields' => '',
-    'dry-run' => FALSE,
-    'allow-external' => FALSE,
-  ]): void {
+  public function generate(
+    array $options = [
+      'bundles' => '',
+      'output-dir' => '',
+      'overwrite' => FALSE,
+      'skip-fields' => '',
+      'dry-run' => FALSE,
+      'allow-external' => FALSE,
+    ],
+  ): void {
     $only = $this->parseList((string) ($options['bundles'] ?? ''));
     $skip = $this->parseList((string) ($options['skip-fields'] ?? ''));
     $outputDir = rtrim((string) ($options['output-dir'] ?? ''), '/');
@@ -109,7 +117,7 @@ final class CodegenCommands extends DrushCommands {
     $allowExternal = (bool) $options['allow-external'];
 
     if (!$outputDir) {
-      $cfg = \Drupal::config('graphql_compose_codegen.settings');
+      $cfg = $this->configFactory->get('graphql_compose_codegen.settings');
       $outputDir = rtrim((string) ($cfg->get('output_dir') ?? ''), '/');
     }
     if ($outputDir && !str_starts_with($outputDir, '/')) {
@@ -151,8 +159,9 @@ final class CodegenCommands extends DrushCommands {
     $this->moduleHandler->invokeAll('graphql_compose_codegen_post_generate', [$context]);
   }
 
-  // ── gqcc:diff ───────────────────────────────────────────────────────────
-
+  /**
+   * Shows what would change versus the last gqcc:generate run.
+   */
   #[CLI\Command(
     name: 'graphql-compose-codegen:diff',
     aliases: ['gqcc:diff'],
@@ -187,8 +196,9 @@ final class CodegenCommands extends DrushCommands {
     return self::EXIT_SUCCESS;
   }
 
-  // ── gqcc:validate ───────────────────────────────────────────────────────
-
+  /**
+   * Validates that scaffold files on disk match the live schema.
+   */
   #[CLI\Command(
     name: 'graphql-compose-codegen:validate',
     aliases: ['gqcc:validate'],
@@ -198,12 +208,14 @@ final class CodegenCommands extends DrushCommands {
   #[CLI\Option(name: 'skip-fields', description: 'Comma-separated extra field names to exclude.')]
   #[CLI\Option(name: 'allow-external', description: 'Permit output-dir paths outside the project root.')]
   #[CLI\Usage(name: 'drush gqcc:validate --output-dir=../ui', description: 'Exit non-zero if scaffold files on disk are out of sync with the live schema.')]
-  public function validate(array $options = [
-    'bundles' => '',
-    'output-dir' => '',
-    'skip-fields' => '',
-    'allow-external' => FALSE,
-  ]): int {
+  public function validate(
+    array $options = [
+      'bundles' => '',
+      'output-dir' => '',
+      'skip-fields' => '',
+      'allow-external' => FALSE,
+    ],
+  ): int {
     $outputDir = rtrim((string) ($options['output-dir'] ?? ''), '/');
     if (!$outputDir) {
       $this->logger()->error('--output-dir is required for gqcc:validate.');
@@ -239,13 +251,16 @@ final class CodegenCommands extends DrushCommands {
     return self::EXIT_FAILURE;
   }
 
-  // ── Internal ────────────────────────────────────────────────────────────
-
   /**
    * Builds the complete artefact set (node + paragraph) for the given filters.
    *
+   * @param string[] $only
+   *   Bundle IDs to include (empty = all).
+   * @param string[] $skip
+   *   Field names to exclude.
+   *
    * @return array<string, string>
-   *   Relative path → content.
+   *   Relative path to artefact content.
    */
   private function buildArtefacts(array $only, array $skip): array {
     $artefacts = [
@@ -271,6 +286,12 @@ final class CodegenCommands extends DrushCommands {
     return $artefacts;
   }
 
+  /**
+   * Emits all artefact content to stdout.
+   *
+   * @param array<string, string> $artefacts
+   *   Relative path to artefact content.
+   */
   private function emitStdout(array $artefacts): void {
     $this->output()->writeln('');
     foreach ($artefacts as $relPath => $content) {
@@ -285,6 +306,18 @@ final class CodegenCommands extends DrushCommands {
     $this->output()->writeln('  Tip: use --output-dir=/path/to/nextjs to write files directly.');
   }
 
+  /**
+   * Writes artefacts to disk under the given generated directory.
+   *
+   * @param array<string, string> $artefacts
+   *   Relative path to artefact content.
+   * @param string $genDir
+   *   The absolute path to the generated directory.
+   * @param bool $overwrite
+   *   Whether to overwrite existing files.
+   * @param bool $dryRun
+   *   If TRUE, only log what would be written.
+   */
   private function emitFiles(array $artefacts, string $genDir, bool $overwrite, bool $dryRun): void {
     foreach ($artefacts as $relPath => $content) {
       $absPath = $genDir . '/' . $relPath;
@@ -327,6 +360,14 @@ final class CodegenCommands extends DrushCommands {
     }
   }
 
+  /**
+   * Writes a formatted bundle header to output.
+   *
+   * @param string $bundle
+   *   The bundle machine name.
+   * @param string $label
+   *   The human-readable bundle label.
+   */
   private function writeBundleHeader(string $bundle, string $label): void {
     $gqlType = $this->inspector->getGraphQlTypeName($bundle);
     $tsType = $this->inspector->getTsTypeName($bundle);
@@ -335,6 +376,12 @@ final class CodegenCommands extends DrushCommands {
     $this->output()->writeln("│");
   }
 
+  /**
+   * Writes field descriptors for a bundle to output.
+   *
+   * @param array<string, mixed> $fields
+   *   Field descriptor arrays keyed by field machine name.
+   */
   private function writeFields(array $fields): void {
     if (!$fields) {
       $this->output()->writeln("│  (no extra fields — only base type fields)");
@@ -353,6 +400,15 @@ final class CodegenCommands extends DrushCommands {
     }
   }
 
+  /**
+   * Parses a comma-separated string into a filtered array of strings.
+   *
+   * @param string $csv
+   *   Comma-separated values.
+   *
+   * @return string[]
+   *   Trimmed, non-empty string values.
+   */
   private function parseList(string $csv): array {
     return array_values(array_filter(array_map('trim', explode(',', $csv))));
   }

@@ -13,6 +13,9 @@ use Drupal\graphql_compose_codegen\Attribute\FieldTypeMapper;
 #[FieldTypeMapper(id: 'media', drupalTypes: ['image', 'file'])]
 final class MediaMapper extends FieldTypeMapperBase {
 
+  /**
+   * {@inheritdoc}
+   */
   protected function getBaseTsType(FieldDefinitionInterface $definition): string {
     return $definition->getType() === 'image' ? 'Image' : 'DrupalMedia';
   }

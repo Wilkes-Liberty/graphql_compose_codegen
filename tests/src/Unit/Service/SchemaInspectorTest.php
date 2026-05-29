@@ -18,6 +18,12 @@ use PHPUnit\Framework\TestCase;
  */
 final class SchemaInspectorTest extends TestCase {
 
+  /**
+   * Returns a SchemaInspector wired with stub dependencies.
+   *
+   * @return \Drupal\graphql_compose_codegen\Service\SchemaInspector
+   *   The inspector instance.
+   */
   private function inspector(): SchemaInspector {
     return new SchemaInspector(
       $this->createStub(EntityTypeBundleInfoInterface::class),
@@ -27,30 +33,35 @@ final class SchemaInspectorTest extends TestCase {
     );
   }
 
-  /** @covers ::getGraphQlTypeName */
+  /**
+   * @covers ::getGraphQlTypeName */
   public function testGraphQlTypeName(): void {
     self::assertSame('NodeBasicPage', $this->inspector()->getGraphQlTypeName('basic_page'));
     self::assertSame('NodePlatform', $this->inspector()->getGraphQlTypeName('platform'));
     self::assertSame('NodeNewsletter', $this->inspector()->getGraphQlTypeName('newsletter'));
   }
 
-  /** @covers ::getTsTypeName */
+  /**
+   * @covers ::getTsTypeName */
   public function testTsTypeName(): void {
     self::assertSame('DrupalBasicPage', $this->inspector()->getTsTypeName('basic_page'));
     self::assertSame('DrupalPlatform', $this->inspector()->getTsTypeName('platform'));
   }
 
-  /** @covers ::getGraphQlTypeNameForParagraph */
+  /**
+   * @covers ::getGraphQlTypeNameForParagraph */
   public function testParagraphGraphQlName(): void {
     self::assertSame('ParagraphTwoColumn', $this->inspector()->getGraphQlTypeNameForParagraph('two_column'));
   }
 
-  /** @covers ::getTsTypeNameForParagraph */
+  /**
+   * @covers ::getTsTypeNameForParagraph */
   public function testParagraphTsName(): void {
     self::assertSame('DrupalParagraphTwoColumn', $this->inspector()->getTsTypeNameForParagraph('two_column'));
   }
 
-  /** @covers ::toGqlFieldName */
+  /**
+   * @covers ::toGqlFieldName */
   public function testFieldNameConversion(): void {
     $i = $this->inspector();
     self::assertSame('missionImpact', $i->toGqlFieldName('field_mission_impact'));

@@ -34,8 +34,6 @@ BANNER;
     private readonly ConfigFactoryInterface $configFactory,
   ) {}
 
-  // ── Node generators ─────────────────────────────────────────────────────
-
   /**
    * Generates TypeScript type definitions for node bundles.
    *
@@ -195,8 +193,6 @@ BANNER;
     return $this->buildComponent($component, $tsType, $gqlType, $label, $fields);
   }
 
-  // ── Paragraph generators ────────────────────────────────────────────────
-
   /**
    * Generates TypeScript type definitions for paragraph bundles.
    *
@@ -312,8 +308,25 @@ BANNER;
     return $this->buildComponent($component, $tsType, $gqlType, $label, $fields, TRUE);
   }
 
-  // ── Shared ──────────────────────────────────────────────────────────────
-
+  /**
+   * Builds a React component stub for a node or paragraph bundle.
+   *
+   * @param string $component
+   *   The component name (TypeScript type with Drupal prefix stripped).
+   * @param string $tsType
+   *   The full TypeScript type name.
+   * @param string $gqlType
+   *   The GraphQL type name.
+   * @param string $label
+   *   The human-readable bundle label.
+   * @param array<string, mixed> $fields
+   *   Field descriptor arrays.
+   * @param bool $isParagraph
+   *   Whether this is a paragraph bundle component.
+   *
+   * @return string
+   *   The TSX component stub content.
+   */
   private function buildComponent(string $component, string $tsType, string $gqlType, string $label, array $fields, bool $isParagraph = FALSE): string {
     $lines = [self::FILE_BANNER, ''];
     $lines[] = '// ── Rename to ' . $component . '.tsx and move to components/drupal/ ─────────────';
@@ -346,6 +359,15 @@ BANNER;
     return implode("\n", $lines);
   }
 
+  /**
+   * Returns the GraphQL field selector string for a given field descriptor.
+   *
+   * @param array<string, mixed> $field
+   *   A field descriptor from SchemaInspector::getFieldsForBundle().
+   *
+   * @return string
+   *   The GraphQL selection string for the field.
+   */
   private function getGqlSelector(array $field): string {
     $name = $field['gql_name'];
     $tsType = $field['ts_type'];

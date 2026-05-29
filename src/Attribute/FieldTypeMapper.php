@@ -16,6 +16,8 @@ use Drupal\Component\Plugin\Attribute\Plugin;
 final class FieldTypeMapper extends Plugin {
 
   /**
+   * Constructs a FieldTypeMapper attribute.
+   *
    * @param string $id
    *   The plugin ID.
    * @param string[] $drupalTypes

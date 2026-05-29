@@ -19,6 +19,9 @@ use Drupal\graphql_compose_codegen\Attribute\FieldTypeMapper;
 )]
 final class OtherMapper extends FieldTypeMapperBase {
 
+  /**
+   * {@inheritdoc}
+   */
   protected function getBaseTsType(FieldDefinitionInterface $definition): string {
     return 'object';
   }

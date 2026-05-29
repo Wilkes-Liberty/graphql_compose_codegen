@@ -7,5 +7,6 @@ services:
       - '@graphql_compose_codegen.artefact_snapshot'
       - '@graphql_compose_codegen.path_guard'
       - '@module_handler'
+      - '@config.factory'
     tags:
       - { name: drush.command }

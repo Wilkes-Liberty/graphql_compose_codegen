@@ -16,6 +16,11 @@ use Drupal\node\Entity\NodeType;
  */
 final class SchemaInspectorKernelTest extends KernelTestBase {
 
+  /**
+   * {@inheritdoc}
+   *
+   * @var string[]
+   */
   protected static $modules = [
     'system',
     'user',
@@ -25,6 +30,9 @@ final class SchemaInspectorKernelTest extends KernelTestBase {
     'graphql_compose_codegen',
   ];
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('node');
@@ -49,6 +57,9 @@ final class SchemaInspectorKernelTest extends KernelTestBase {
     ])->save();
   }
 
+  /**
+   * Tests that SchemaInspector extracts the field shape for a real bundle.
+   */
   public function testExtractsExtraFieldShape(): void {
     /** @var \Drupal\graphql_compose_codegen\Service\SchemaInspector $inspector */
     $inspector = $this->container->get('graphql_compose_codegen.schema_inspector');

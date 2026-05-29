@@ -19,6 +19,9 @@ use Drupal\graphql_compose_codegen\Attribute\FieldTypeMapper;
 )]
 final class EntityReferenceMapper extends FieldTypeMapperBase {
 
+  /**
+   * {@inheritdoc}
+   */
   protected function getBaseTsType(FieldDefinitionInterface $definition): string {
     $targetType = $definition->getSetting('target_type') ?? 'node';
     return match ($targetType) {
