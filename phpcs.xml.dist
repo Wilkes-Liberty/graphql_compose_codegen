@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ruleset name="graphql_compose_codegen">
+  <description>PHP_CodeSniffer configuration for graphql_compose_codegen.</description>
+
+  <arg name="extensions" value="php,module,install,inc,profile,theme"/>
+  <arg name="colors"/>
+  <arg value="sp"/>
+
+  <file>src/</file>
+  <file>tests/</file>
+  <file>graphql_compose_codegen.module</file>
+
+  <rule ref="Drupal"/>
+  <rule ref="DrupalPractice"/>
+
+  <!-- Allow inline HTML in t() strings for the log notices that render <code>. -->
+  <rule ref="Drupal.Semantics.FunctionT.NotLiteralString">
+    <severity>0</severity>
+  </rule>
+</ruleset>
