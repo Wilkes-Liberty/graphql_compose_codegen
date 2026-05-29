@@ -3,17 +3,29 @@ services:
     parent: 'logger.channel_base'
     arguments: ['graphql_compose_codegen']
 
+  plugin.manager.graphql_compose_codegen.field_type_mapper:
+    class: Drupal\graphql_compose_codegen\PluginManager\FieldTypeMapperManager
+    parent: default_plugin_manager
+
+  graphql_compose_codegen.path_guard:
+    class: Drupal\graphql_compose_codegen\Service\PathGuard
+
+  graphql_compose_codegen.artefact_snapshot:
+    class: Drupal\graphql_compose_codegen\Service\ArtefactSnapshot
+    arguments:
+      - '@state'
+      - '@file_system'
+
   graphql_compose_codegen.schema_inspector:
     class: Drupal\graphql_compose_codegen\Service\SchemaInspector
     arguments:
       - '@entity_type.bundle.info'
       - '@entity_field.manager'
       - '@config.factory'
+      - '@plugin.manager.graphql_compose_codegen.field_type_mapper'
 
   graphql_compose_codegen.typescript_generator:
     class: Drupal\graphql_compose_codegen\Service\TypeScriptGenerator
     arguments:
       - '@graphql_compose_codegen.schema_inspector'
       - '@config.factory'
-
-
