@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * @file
  * Bootstrap file for unit tests that don't need the full Drupal stack.
@@ -8,8 +10,6 @@
  */
 
 use Composer\Autoload\ClassLoader;
-
-declare(strict_types=1);
 
 require __DIR__ . '/../../../../../vendor/autoload.php';
 
