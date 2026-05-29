@@ -7,5 +7,6 @@ description: >
   when bundles or fields change so nothing drifts silently.
 core_version_requirement: ^10.2 || ^11
 package: GraphQL Compose
+configure: graphql_compose_codegen.settings_form
 dependencies:
   - graphql_compose:graphql_compose
