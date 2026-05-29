@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\graphql_compose_codegen\Commands;
+namespace Drupal\graphql_compose_codegen\Drush\Commands;
 
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\graphql_compose_codegen\Service\ArtefactSnapshot;
