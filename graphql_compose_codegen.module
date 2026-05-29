@@ -123,9 +123,9 @@ function graphql_compose_codegen_entity_bundle_delete(string $entity_type_id, st
     return;
   }
   \Drupal::logger('graphql_compose_codegen')->warning(
-    '@type bundle "@bundle" deleted. Manually remove the corresponding TypeScript type, the inline fragment, and the NodeRenderer case from your Next.js project.',
+    'The @type bundle "@bundle" was deleted. Manually remove the corresponding TypeScript type, the inline fragment, and the NodeRenderer case from your Next.js project.',
     [
-      '@type' => ucfirst($entity_type_id),
+      '@type' => $entity_type_id,
       '@bundle' => $bundle,
     ]
   );
@@ -135,8 +135,8 @@ function graphql_compose_codegen_entity_bundle_delete(string $entity_type_id, st
  * Implements hook_field_config_insert().
  */
 function graphql_compose_codegen_field_config_insert(FieldConfigInterface $field_config): void {
-  $entity_type = $field_config->getTargetEntityTypeId();
-  if (!in_array($entity_type, ['node', 'paragraph'], TRUE)) {
+  $entity_type_id = $field_config->getTargetEntityTypeId();
+  if (!in_array($entity_type_id, ['node', 'paragraph'], TRUE)) {
     return;
   }
   $bundle = $field_config->getTargetBundle();
@@ -146,7 +146,7 @@ function graphql_compose_codegen_field_config_insert(FieldConfigInterface $field
     [
       '@field' => $field_config->getName(),
       '@field_type' => $type,
-      '@entity_type' => $entity_type,
+      '@entity_type' => $entity_type_id,
       '@bundle' => $bundle,
     ]
   );
@@ -156,8 +156,8 @@ function graphql_compose_codegen_field_config_insert(FieldConfigInterface $field
  * Implements hook_field_config_delete().
  */
 function graphql_compose_codegen_field_config_delete(FieldConfigInterface $field_config): void {
-  $entity_type = $field_config->getTargetEntityTypeId();
-  if (!in_array($entity_type, ['node', 'paragraph'], TRUE)) {
+  $entity_type_id = $field_config->getTargetEntityTypeId();
+  if (!in_array($entity_type_id, ['node', 'paragraph'], TRUE)) {
     return;
   }
   $bundle = $field_config->getTargetBundle();
@@ -165,7 +165,7 @@ function graphql_compose_codegen_field_config_delete(FieldConfigInterface $field
     'Field "@field" removed from @entity_type bundle "@bundle". Manually remove references from TypeScript types and GraphQL fragments in your Next.js project.',
     [
       '@field' => $field_config->getName(),
-      '@entity_type' => $entity_type,
+      '@entity_type' => $entity_type_id,
       '@bundle' => $bundle,
     ]
   );
