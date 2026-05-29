@@ -7,7 +7,7 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ---
 
-## [1.0.0-dev] — Unreleased
+## [1.0.0] — Unreleased
 
 ### Added
 
@@ -19,22 +19,22 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
   - `fragments.generated.ts` — GraphQL inline fragments
   - `node-renderer-cases.generated.tsx` — NodeRenderer switch-case stubs
   - `components/{Name}.generated.tsx` — one React component stub per bundle
-- `SchemaInspector` service — field discovery, GQL/TS name resolution,
-  `entity_reference` / `entity_reference_revisions` target-type mapping,
-  multi-value cardinality detection.
-- `TypeScriptGenerator` service — template-based code generation for all
-  four artefact types.
-- Module configuration schema (`graphql_compose_codegen.settings`) with
-  configurable `base_type_fields` and `output_dir` defaults.
-- Support for `drupal/scheduler` fields (`publish_on`, `unpublish_on`) via
-  automatic `timestamp` → `string` type mapping (suggested dependency).
-- Lazy `\Drupal::service()` accessor pattern so commands work under Drush 12
-  and Drush 13's `LegacyServiceInstantiator` discovery without constructor
-  arguments on the command class.
-- Full `FIELD_TYPE_MAP` covering text, number, boolean, date, link, image,
-  file, list, address, geolocation, range, and color field types.
-- `--bundles`, `--output-dir`, `--overwrite`, and `--skip-fields` options
-  on both commands.
-- Stdout mode (no `--output-dir`) with bordered file separators for quick
-  review or pipe-to-file workflows.
-- Drupal 10.2+ and Drupal 11 compatibility.
+- `gqcc:diff` Drush command — compare current schema against last generation snapshot.
+- `gqcc:validate` Drush command — verify scaffold files on disk are in sync with the live schema.
+- Settings form at `/admin/config/development/graphql-compose-codegen`.
+- `hook_help` page at `/admin/help/graphql_compose_codegen`.
+- `hook_requirements` checks at `/admin/reports/status` (bundles exposed, stale base fields).
+- Schema-change hooks for node and paragraph bundles/fields, with actionable log notices.
+- Full paragraph bundle introspection (TypeScript types, GQL fragments, component stubs).
+- Attribute-based plugin system for custom Drupal-type → TypeScript-type mappers.
+- `hook_graphql_compose_codegen_pre_generate` / `_post_generate` for extensibility.
+- `--dry-run`, `--allow-external`, idempotency (skip write when content unchanged), output-dir safety guard.
+- Drush 12+ attribute-style commands with `AutowireTrait`.
+- PHPUnit Unit + Kernel test suites.
+- PHPStan and phpcs configurations.
+
+### Fixed
+
+- Replaced `hook_field_storage_config_insert/delete` with `hook_field_config_insert/delete`
+  so the bundle name is available when the field is attached (previously logged `[]`).
+- README no longer claims an admin UI that didn't exist — the settings form now ships in 1.0.0.
