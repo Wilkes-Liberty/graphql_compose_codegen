@@ -12,6 +12,7 @@ composer.lock
 # PHP testing
 /.phpunit.result.cache
 /.phpcs-cache
+/phpunit.xml
 
-# Internal docs (not shipped on d.o)
+# Internal brainstorming / specs / plans (not shipped on d.o)
 /docs/superpowers/
