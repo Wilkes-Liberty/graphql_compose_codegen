@@ -116,6 +116,11 @@ final class CodegenCommands extends DrushCommands {
       $outputDir = DRUPAL_ROOT . '/' . $outputDir;
     }
 
+    // Validate the output directory BEFORE any other work — defense in depth.
+    if ($outputDir) {
+      $this->pathGuard->validate($outputDir, $allowExternal);
+    }
+
     $bundleInfo = $this->inspector->getBundles($only);
     if (!$bundleInfo) {
       $this->logger()->warning('No matching node bundles found.');
@@ -136,7 +141,6 @@ final class CodegenCommands extends DrushCommands {
       $this->emitStdout($artefacts);
     }
     else {
-      $this->pathGuard->validate($outputDir, $allowExternal);
       $this->emitFiles($artefacts, $outputDir . '/generated', $overwrite, $dryRun);
       if (!$dryRun) {
         $this->snapshot->record($artefacts);
@@ -157,15 +161,15 @@ final class CodegenCommands extends DrushCommands {
   #[CLI\Option(name: 'skip-fields', description: 'Comma-separated extra field names to exclude.')]
   #[CLI\Usage(name: 'drush gqcc:diff', description: 'Show what would change vs the last gqcc:generate run.')]
   public function diff(array $options = ['bundles' => '', 'skip-fields' => '']): int {
-    $only = $this->parseList((string) ($options['bundles'] ?? ''));
-    $skip = $this->parseList((string) ($options['skip-fields'] ?? ''));
-    $artefacts = $this->buildArtefacts($only, $skip);
-    $diff = $this->snapshot->diff($artefacts);
-
     if ($this->snapshot->load() === NULL) {
       $this->logger()->warning('No previous snapshot — run gqcc:generate --output-dir=... once first.');
       return self::EXIT_SUCCESS;
     }
+
+    $only = $this->parseList((string) ($options['bundles'] ?? ''));
+    $skip = $this->parseList((string) ($options['skip-fields'] ?? ''));
+    $artefacts = $this->buildArtefacts($only, $skip);
+    $diff = $this->snapshot->diff($artefacts);
 
     $this->output()->writeln(sprintf('  Added:   %d', count($diff['added'])));
     foreach ($diff['added'] as $p) {
