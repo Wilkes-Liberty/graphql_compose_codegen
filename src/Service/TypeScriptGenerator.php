@@ -36,6 +36,17 @@ BANNER;
 
   // ── Node generators ─────────────────────────────────────────────────────
 
+  /**
+   * Generates TypeScript type definitions for node bundles.
+   *
+   * @param string[] $bundles
+   *   Optional list of node bundle IDs. Empty means all bundles.
+   * @param string[] $skipFields
+   *   Additional field names to exclude.
+   *
+   * @return string
+   *   Concatenated TypeScript snippet for merging into types/index.d.ts.
+   */
   public function generateTypeDefinitions(array $bundles = [], array $skipFields = []): string {
     $config = $this->configFactory->get('graphql_compose_codegen.settings');
     $baseType = (string) ($config->get('base_ts_type') ?? 'NodeCommonFields');
@@ -82,6 +93,17 @@ BANNER;
     return implode("\n", $lines);
   }
 
+  /**
+   * Generates GraphQL inline fragments for node bundles.
+   *
+   * @param string[] $bundles
+   *   Optional list of node bundle IDs. Empty means all bundles.
+   * @param string[] $skipFields
+   *   Additional field names to exclude.
+   *
+   * @return string
+   *   Concatenated fragment text for merging into a node-by-path query.
+   */
   public function generateFragments(array $bundles = [], array $skipFields = []): string {
     $lines = [self::FILE_BANNER, ''];
     $lines[] = '// ── Merge the following into lib/queries/node-by-path.ts ─────────────────────';
@@ -108,6 +130,15 @@ BANNER;
     return implode("\n", $lines);
   }
 
+  /**
+   * Generates switch-case stubs for a Next.js NodeRenderer component.
+   *
+   * @param string[] $bundles
+   *   Optional list of node bundle IDs. Empty means all bundles.
+   *
+   * @return string
+   *   Commented-out import + case statements for hand-merging.
+   */
   public function generateRendererCases(array $bundles = []): string {
     $lines = [self::FILE_BANNER, ''];
     $lines[] = '// ── Add these cases to components/drupal/NodeRenderer.tsx ────────────────────';
@@ -146,6 +177,15 @@ BANNER;
     return implode("\n", $lines);
   }
 
+  /**
+   * Generates a React component stub for a single node bundle.
+   *
+   * @param string $bundle
+   *   Node bundle machine name.
+   *
+   * @return string
+   *   TSX content suitable for writing to a .generated.tsx file.
+   */
   public function generateComponentStub(string $bundle): string {
     $tsType = $this->inspector->getTsTypeName($bundle);
     $gqlType = $this->inspector->getGraphQlTypeName($bundle);
@@ -157,6 +197,18 @@ BANNER;
 
   // ── Paragraph generators ────────────────────────────────────────────────
 
+  /**
+   * Generates TypeScript type definitions for paragraph bundles.
+   *
+   * @param string[] $bundles
+   *   Optional list of paragraph bundle IDs. Empty means all bundles.
+   * @param string[] $skipFields
+   *   Additional field names to exclude.
+   *
+   * @return string
+   *   Concatenated TypeScript snippet for the paragraph section of types/.
+   *   Returns an explanatory comment when no paragraph bundles exist.
+   */
   public function generateParagraphTypeDefinitions(array $bundles = [], array $skipFields = []): string {
     $lines = [self::FILE_BANNER, ''];
     $lines[] = '// ── Merge the following into types/index.d.ts (paragraph section) ───────────';
@@ -201,6 +253,18 @@ BANNER;
     return implode("\n", $lines);
   }
 
+  /**
+   * Generates GraphQL fragments for paragraph bundles.
+   *
+   * @param string[] $bundles
+   *   Optional list of paragraph bundle IDs. Empty means all bundles.
+   * @param string[] $skipFields
+   *   Additional field names to exclude.
+   *
+   * @return string
+   *   Concatenated fragment text for use as the PARAGRAPH_FRAGMENTS template
+   *   literal in a node-by-path query.
+   */
   public function generateParagraphFragments(array $bundles = [], array $skipFields = []): string {
     $lines = [self::FILE_BANNER, ''];
     $lines[] = '// ── Paragraph fragments (use as PARAGRAPH_FRAGMENTS template literal) ──────';
@@ -230,18 +294,27 @@ BANNER;
     return implode("\n", $lines);
   }
 
+  /**
+   * Generates a React component stub for a single paragraph bundle.
+   *
+   * @param string $bundle
+   *   Paragraph bundle machine name.
+   *
+   * @return string
+   *   TSX content suitable for writing to a .generated.tsx file.
+   */
   public function generateParagraphComponentStub(string $bundle): string {
     $tsType = $this->inspector->getTsTypeNameForParagraph($bundle);
     $gqlType = $this->inspector->getGraphQlTypeNameForParagraph($bundle);
     $component = str_replace('Drupal', '', $tsType);
     $label = str_replace('_', ' ', ucwords($bundle, '_'));
     $fields = $this->inspector->getFieldsForParagraphBundle($bundle);
-    return $this->buildComponent($component, $tsType, $gqlType, $label, $fields);
+    return $this->buildComponent($component, $tsType, $gqlType, $label, $fields, TRUE);
   }
 
   // ── Shared ──────────────────────────────────────────────────────────────
 
-  private function buildComponent(string $component, string $tsType, string $gqlType, string $label, array $fields): string {
+  private function buildComponent(string $component, string $tsType, string $gqlType, string $label, array $fields, bool $isParagraph = FALSE): string {
     $lines = [self::FILE_BANNER, ''];
     $lines[] = '// ── Rename to ' . $component . '.tsx and move to components/drupal/ ─────────────';
     $lines[] = "import type { {$tsType} } from \"@/types\"";
@@ -254,9 +327,12 @@ BANNER;
     $lines[] = " */";
     $lines[] = "export function {$component}({ node }: { node: {$tsType} }) {";
     $lines[] = "  return (";
-    $lines[] = "    <article>";
-    $lines[] = "      <h1>{node.title}</h1>";
-    $lines[] = '';
+    $tag = $isParagraph ? 'section' : 'article';
+    $lines[] = "    <{$tag}>";
+    if (!$isParagraph) {
+      $lines[] = "      <h1>{node.title}</h1>";
+      $lines[] = '';
+    }
     $lines[] = "      {/* TODO: render {$label} — available fields: */}";
     foreach ($fields as $field) {
       $lines[] = "      {/* {$field['gql_name']}: {$field['ts_type']} */}";
@@ -264,7 +340,7 @@ BANNER;
     if (empty($fields)) {
       $lines[] = "      {/* (no extra fields) */}";
     }
-    $lines[] = "    </article>";
+    $lines[] = "    </{$tag}>";
     $lines[] = "  )";
     $lines[] = "}";
     return implode("\n", $lines);
