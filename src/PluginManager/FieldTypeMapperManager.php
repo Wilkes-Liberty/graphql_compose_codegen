@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\graphql_compose_codegen\PluginManager;
 
-use Drupal\Component\Plugin\Discovery\DiscoveryInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
@@ -24,6 +23,16 @@ final class FieldTypeMapperManager extends DefaultPluginManager {
    */
   private ?array $typeIndex = NULL;
 
+  /**
+   * Constructs a FieldTypeMapperManager.
+   *
+   * @param \Traversable $namespaces
+   *   Module namespaces, keyed by module machine name.
+   * @param \Drupal\Core\Cache\CacheBackendInterface $cache_backend
+   *   The cache backend.
+   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
+   *   The module handler.
+   */
   public function __construct(
     \Traversable $namespaces,
     CacheBackendInterface $cache_backend,
