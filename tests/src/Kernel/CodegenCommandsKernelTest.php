@@ -8,12 +8,14 @@ use Drupal\KernelTests\KernelTestBase;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\node\Entity\NodeType;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Kernel test verifying generator output for a real bundle.
  *
  * @group graphql_compose_codegen
  */
+#[RunTestsInSeparateProcesses]
 final class CodegenCommandsKernelTest extends KernelTestBase {
 
   /**
