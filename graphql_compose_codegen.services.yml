@@ -9,6 +9,8 @@ services:
 
   graphql_compose_codegen.path_guard:
     class: Drupal\graphql_compose_codegen\Service\PathGuard
+    arguments:
+      - '%app.root%'
 
   graphql_compose_codegen.artefact_snapshot:
     class: Drupal\graphql_compose_codegen\Service\ArtefactSnapshot
