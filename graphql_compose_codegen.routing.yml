@@ -1,0 +1,7 @@
+graphql_compose_codegen.settings_form:
+  path: '/admin/config/development/graphql-compose-codegen'
+  defaults:
+    _form: '\Drupal\graphql_compose_codegen\Form\SettingsForm'
+    _title: 'GraphQL Compose Codegen'
+  requirements:
+    _permission: 'administer graphql_compose_codegen'
