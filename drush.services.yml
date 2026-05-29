@@ -1,5 +1,0 @@
-services:
-  graphql_compose_codegen.commands:
-    class: Drupal\graphql_compose_codegen\Commands\CodegenCommands
-    tags:
-      - { name: drush.command }
