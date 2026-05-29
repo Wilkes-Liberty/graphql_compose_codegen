@@ -8,7 +8,6 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
-use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\graphql_compose_codegen\PluginManager\FieldTypeMapperManager;
 
 /**
@@ -81,10 +80,10 @@ final class SchemaInspector {
   // ── Paragraph bundle helpers ────────────────────────────────────────────
 
   public function getParagraphBundles(array $only = []): array {
-    if (!$this->bundleInfo->getBundleInfo('paragraph')) {
+    $all = $this->bundleInfo->getBundleInfo('paragraph');
+    if (!$all) {
       return [];
     }
-    $all = $this->bundleInfo->getBundleInfo('paragraph');
     return $only ? array_intersect_key($all, array_flip($only)) : $all;
   }
 
