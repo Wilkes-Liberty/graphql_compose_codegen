@@ -16,7 +16,6 @@ services:
     class: Drupal\graphql_compose_codegen\Service\ArtefactSnapshot
     arguments:
       - '@state'
-      - '@file_system'
 
   graphql_compose_codegen.schema_inspector:
     class: Drupal\graphql_compose_codegen\Service\SchemaInspector

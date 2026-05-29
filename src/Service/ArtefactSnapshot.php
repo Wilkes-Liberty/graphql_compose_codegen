@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\graphql_compose_codegen\Service;
 
-use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\State\StateInterface;
 
 /**
@@ -24,12 +23,9 @@ final class ArtefactSnapshot {
    *
    * @param \Drupal\Core\State\StateInterface $state
    *   The state service.
-   * @param \Drupal\Core\File\FileSystemInterface $fileSystem
-   *   The file system service.
    */
   public function __construct(
     private readonly StateInterface $state,
-    private readonly FileSystemInterface $fileSystem,
   ) {}
 
   /**
@@ -113,7 +109,7 @@ final class ArtefactSnapshot {
       }
     }
 
-    // Extras: any *.generated.* file in $genDir not in $current.
+    // Extras: any file in $genDir that's not in the current artefact set.
     $extra = [];
     if (is_dir($genDir)) {
       $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($genDir, \FilesystemIterator::SKIP_DOTS));

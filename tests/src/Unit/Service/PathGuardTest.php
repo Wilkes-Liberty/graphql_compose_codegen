@@ -57,6 +57,21 @@ final class PathGuardTest extends TestCase {
   }
 
   /** @covers ::validate */
+  public function testRejectsArbitraryPathOutsideProjectRoot(): void {
+    // Create a directory that is NOT in ALWAYS_REJECT and NOT under the
+    // project root, to exercise the "outside project root" rejection branch.
+    $external = sys_get_temp_dir() . '/gqcc-outside-' . bin2hex(random_bytes(4));
+    mkdir($external . '/leaf', 0700, TRUE);
+    try {
+      $this->expectException(\InvalidArgumentException::class);
+      $this->guard()->validate($external . '/leaf');
+    }
+    finally {
+      exec('rm -rf ' . escapeshellarg($external));
+    }
+  }
+
+  /** @covers ::validate */
   public function testAllowExternalBypassesProjectRootCheck(): void {
     $external = sys_get_temp_dir() . '/gqcc-external-' . bin2hex(random_bytes(4));
     mkdir($external, 0700);
