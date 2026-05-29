@@ -46,6 +46,11 @@ drush en graphql_compose_codegen
 Configure via `drush config:set` or by editing
 `graphql_compose_codegen.settings.yml` in your config sync directory:
 
+Or visit **Configuration → Development → GraphQL Compose Codegen**
+(`/admin/config/development/graphql-compose-codegen`) to edit the same
+settings via the admin UI. Both methods write to the same
+`graphql_compose_codegen.settings` config object.
+
 ```yaml
 # config/sync/graphql_compose_codegen.settings.yml
 base_type_fields:
