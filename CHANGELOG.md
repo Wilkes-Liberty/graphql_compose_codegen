@@ -11,6 +11,10 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ### Added
 
+- CI: Dependabot patch/minor PRs now auto-merge once checks pass (majors still
+  reviewed), via the org reusable workflow
+  (`.github/workflows/dependabot-automerge.yml` calls the shared
+  `dependabot-automerge.yml` in `Wilkes-Liberty/.github`).
 - `gqcc:inspect` Drush command — enumerate node bundles and their extra
   (non-base-type) fields with GraphQL names, TypeScript types, cardinality,
   and required status.
