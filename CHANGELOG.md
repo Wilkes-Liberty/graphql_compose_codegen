@@ -32,6 +32,9 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 - Drush 12+ attribute-style commands with `AutowireTrait`.
 - PHPUnit Unit + Kernel test suites.
 - PHPStan and phpcs configurations.
+- Org governance baseline: changelog-check and changelog-autoupdate GitHub
+  Actions callers, Dependabot config (composer + github-actions, weekly), and a
+  non-blocking `composer audit` workflow for PHP dependency security scanning.
 
 ### Fixed
 
