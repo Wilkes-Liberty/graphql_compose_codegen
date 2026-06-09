@@ -160,7 +160,7 @@ graphql_compose_codegen/
 │   └── schema/graphql_compose_codegen.schema.yml
 └── src/
     ├── Attribute/FieldTypeMapper.php       # plugin attribute
-    ├── Commands/CodegenCommands.php        # Drush 12+ attribute commands
+    ├── Drush/Commands/CodegenCommands.php  # Drush 12+ attribute commands
     ├── Form/SettingsForm.php
     ├── Plugin/FieldTypeMapper/             # default field-type mapper plugins
     ├── PluginManager/FieldTypeMapperManager.php
