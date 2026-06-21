@@ -11,6 +11,8 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ### Added
 
+- CI: Slack release notification (`.github/workflows/release-notify.yml`) — posts to the
+  maintainers' release channel on release tags; no-ops without the `SLACK_WEBHOOK_RELEASES` secret.
 - CI: Dependabot patch/minor PRs now auto-merge once checks pass (majors still
   reviewed), via the org reusable workflow
   (`.github/workflows/dependabot-automerge.yml` calls the shared
