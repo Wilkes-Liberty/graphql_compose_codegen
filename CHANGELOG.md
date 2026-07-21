@@ -42,6 +42,13 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
   Actions callers, Dependabot config (composer + github-actions, weekly), and a
   non-blocking `composer audit` workflow for PHP dependency security scanning.
 
+### Changed
+
+- Development branch is now `1.x`, not `1.0.x`. A `1.x` branch ships every 1.y release from
+  one line; `1.0.x` is patch-only for the 1.0 series. Track dev with
+  `composer require 'drupal/graphql_compose_codegen:1.x-dev'`. Standardizes the branch model
+  across the W&L drupal.org modules.
+
 ### Fixed
 
 - Replaced `hook_field_storage_config_insert/delete` with `hook_field_config_insert/delete`

@@ -22,7 +22,7 @@ Before filing a new issue:
 - Search the queue (open + closed) for duplicates.
 - Pick the right issue type: **Bug report**, **Feature request**, **Task**, or
   **Support request**.
-- Set **Version** to `1.0.x-dev` unless the bug is tied to a specific tagged
+- Set **Version** to `1.x-dev` unless the bug is tied to a specific tagged
   release.
 - For bugs, provide a minimal reproduction: the relevant `graphql_compose`
   schema configuration, the bundle / field setup, the command you ran, and
@@ -41,9 +41,9 @@ core's:
    a personal fork and an `issue/graphql_compose_codegen-<issue_number>`
    branch for you automatically.
 3. **Push your commits** to that branch (locally or via the GitLab Web IDE).
-   Target the project's `1.0.x` branch.
+   Target the project's `1.x` branch.
 4. **Open a merge request** from your issue branch into
-   `graphql_compose_codegen:1.0.x`. The MR title format is:
+   `graphql_compose_codegen:1.x`. The MR title format is:
 
    ```
    Issue #<number>: <Short description>
@@ -61,13 +61,13 @@ somewhere to thread.
 
 | Branch | Purpose |
 |---|---|
-| `1.0.x` | Current working trunk. All development targets this branch. |
+| `1.x` | Current working trunk. All development targets this branch. |
 
 There is no `master` or `main` branch on origin — this matches the convention
 of every active Drupal contrib project (graphql_compose, paragraphs, webform,
-token all use `MAJOR.MINOR.x` as the default branch). When a `2.0.x` line
+token all use `MAJOR.MINOR.x` as the default branch). When a `2.x` line
 opens (breaking changes, new Drupal major support), a new branch will be
-created from the tip of `1.0.x`; backports to `1.0.x` will be accepted on a
+created from the tip of `1.x`; backports to `1.x` will be accepted on a
 case-by-case basis.
 
 ---
@@ -238,7 +238,7 @@ Issue #<number> by <user1>, <user2>: <Short summary.>
 ```
 
 This is the standard format Drupal core and most contrib projects use, and
-it's what shows up in the merged history on `1.0.x`.
+it's what shows up in the merged history on `1.x`.
 
 If your MR has multiple distinct logical changes that should land as separate
 commits, mention that in the MR description and the maintainer will preserve
@@ -248,13 +248,13 @@ the structure.
 
 ## Release process (for reference)
 
-Releases are tagged from `1.0.x` and pushed to origin. The maintainer handles
+Releases are tagged from `1.x` and pushed to origin. The maintainer handles
 this; contributors don't need to. Documenting it here for transparency:
 
 ```bash
-# 1. Confirm we're on a clean 1.0.x at the tip.
-git checkout 1.0.x
-git pull origin 1.0.x
+# 1. Confirm we're on a clean 1.x at the tip.
+git checkout 1.x
+git pull origin 1.x
 
 # 2. Tag (annotated).
 git tag -a 1.0.0-alpha3 -m "Brief description of the release"
@@ -282,17 +282,17 @@ checked at least weekly.
 This section is a reference for the maintainer's own day-to-day workflow.
 Contributors are welcome to read it but don't need to follow it.
 
-### One trunk: `1.0.x`
+### One trunk: `1.x`
 
-All development happens on `1.0.x`. There is no `master`. The drupal.org
-packager watches `1.0.x` and auto-rebuilds the `1.0.x-dev` release within
+All development happens on `1.x`. There is no `master`. The drupal.org
+packager watches `1.x` and auto-rebuilds the `1.x-dev` release within
 ~15–30 minutes of every push.
 
 If you want a `master`-style local muscle-memory alias without affecting the
-remote, create a **local-only** branch that tracks `origin/1.0.x`:
+remote, create a **local-only** branch that tracks `origin/1.x`:
 
 ```bash
-git branch master --track origin/1.0.x
+git branch master --track origin/1.x
 ```
 
 This `master` exists only in the local repo. It fast-forwards on
@@ -316,19 +316,19 @@ git add <files>
 git commit -m "feat(generator): brief summary"
 
 # Push.
-git push origin 1.0.x
+git push origin 1.x
 ```
 
 After the push, verify the dev release rebuilt by checking the "Last updated"
 timestamp at
-`https://www.drupal.org/project/graphql_compose_codegen/releases/1.0.x-dev`.
+`https://www.drupal.org/project/graphql_compose_codegen/releases/1.x-dev`.
 Allow up to 30 minutes for the packager.
 
 ### Tagging a release
 
 ```bash
-git checkout 1.0.x
-git pull origin 1.0.x
+git checkout 1.x
+git pull origin 1.x
 git tag -a 1.0.0-alphaN -m "Brief description"
 git push origin 1.0.0-alphaN
 ```
@@ -338,7 +338,7 @@ Then create the release node on drupal.org pointing at the new tag.
 ### Rolling back
 
 Prefer forward fixes — push a new commit that corrects the problem. Force-push
-to `1.0.x` only if:
+to `1.x` only if:
 
 1. A commit contained a secret (API key, credential).
 2. A commit contained AI attribution or other metadata that must be removed.
@@ -349,7 +349,7 @@ force-pushing a branch that has an associated tagged release.
 ### Verifying a push reached drupal.org
 
 ```bash
-git ls-remote origin 1.0.x   # tip SHA on remote
+git ls-remote origin 1.x   # tip SHA on remote
 git rev-parse HEAD            # tip SHA locally
 # Should match.
 ```
@@ -357,15 +357,15 @@ git rev-parse HEAD            # tip SHA locally
 If the dev release timestamp hasn't advanced 45 minutes after a confirmed
 push, post in the `#infrastructure` channel on Drupal Slack.
 
-### Starting a `2.0.x` line later
+### Starting a `2.x` line later
 
 When a breaking-change major release is needed:
 
 ```bash
-git checkout -b 2.0.x 1.0.x
-git push -u origin 2.0.x
+git checkout -b 2.x 1.x
+git push -u origin 2.x
 ```
 
 Then update the default branch on drupal.org's GitLab project settings to
-`2.0.x`. Keep `1.0.x` open for security and critical bug backports for at
+`2.x`. Keep `1.x` open for security and critical bug backports for at
 least one release cycle.
