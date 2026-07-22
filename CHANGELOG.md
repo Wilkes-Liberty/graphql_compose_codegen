@@ -7,16 +7,14 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ---
 
-## [1.0.0] — Unreleased
+## [Unreleased]
+
+## [1.0.0-rc1] — 2026-07-21
 
 ### Added
 
-- CI: Slack release notification (`.github/workflows/release-notify.yml`) — posts to the
-  maintainers' release channel on release tags; no-ops without the `SLACK_WEBHOOK_RELEASES` secret.
-- CI: Dependabot patch/minor PRs now auto-merge once checks pass (majors still
-  reviewed), via the org reusable workflow
-  (`.github/workflows/dependabot-automerge.yml` calls the shared
-  `dependabot-automerge.yml` in `Wilkes-Liberty/.github`).
+- Compatible with `graphql_compose` 3.x (GraphQL 5 / webonyx 15): the composer constraint
+  is `^2.1 || ^3.0`, so the module installs and generates against both the 2.x and 3.x lines.
 - `gqcc:inspect` Drush command — enumerate node bundles and their extra
   (non-base-type) fields with GraphQL names, TypeScript types, cardinality,
   and required status.
@@ -38,6 +36,12 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 - Drush 12+ attribute-style commands with `AutowireTrait`.
 - PHPUnit Unit + Kernel test suites.
 - PHPStan and phpcs configurations.
+- CI: Slack release notification (`.github/workflows/release-notify.yml`) — posts to the
+  maintainers' release channel on release tags; no-ops without the `SLACK_WEBHOOK_RELEASES` secret.
+- CI: Dependabot patch/minor PRs now auto-merge once checks pass (majors still
+  reviewed), via the org reusable workflow
+  (`.github/workflows/dependabot-automerge.yml` calls the shared
+  `dependabot-automerge.yml` in `Wilkes-Liberty/.github`).
 - Org governance baseline: changelog-check and changelog-autoupdate GitHub
   Actions callers, Dependabot config (composer + github-actions, weekly), and a
   non-blocking `composer audit` workflow for PHP dependency security scanning.
@@ -53,4 +57,4 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 - Replaced `hook_field_storage_config_insert/delete` with `hook_field_config_insert/delete`
   so the bundle name is available when the field is attached (previously logged `[]`).
-- README no longer claims an admin UI that didn't exist — the settings form now ships in 1.0.0.
+- README no longer claims an admin UI that didn't exist — the settings form now ships in this release.
