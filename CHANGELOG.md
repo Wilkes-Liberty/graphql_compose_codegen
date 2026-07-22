@@ -9,6 +9,10 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+### Documentation
+
+- Install command shows the `^1.0.0-rc1` constraint so it works on projects with default (stable) minimum-stability while only the RC is released.
+
 ## [1.0.0-rc1] — 2026-07-21
 
 ### Added
