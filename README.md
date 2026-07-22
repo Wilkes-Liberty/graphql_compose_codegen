@@ -39,7 +39,7 @@ install this module.
 ## Installation
 
 ```bash
-composer require drupal/graphql_compose_codegen
+composer require 'drupal/graphql_compose_codegen:^1.0.0-rc1'
 drush en graphql_compose_codegen
 ```
 
