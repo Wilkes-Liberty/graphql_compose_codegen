@@ -9,6 +9,8 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+## [1.0.0] — 2026-07-23
+
 ### Added
 
 - GitHub Actions `tests.yml`: a PHPUnit matrix that runs the Unit and Kernel
@@ -31,7 +33,8 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ### Documentation
 
-- Install command shows the `^1.0.0-rc1` constraint so it works on projects with default (stable) minimum-stability while only the RC is released.
+- README install command and Requirements updated for the stable release:
+  `composer require drupal/graphql_compose_codegen`, on Drupal 10.6 or 11.3+.
 
 ## [1.0.0-rc1] — 2026-07-21
 
