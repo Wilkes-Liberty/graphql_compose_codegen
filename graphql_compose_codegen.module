@@ -9,8 +9,8 @@
  * `drush gqcc:generate`.
  *
  * Also provides hook_help for the standard Drupal admin help surface.
- * Runtime requirements live in
- * \Drupal\graphql_compose_codegen\Hook\RequirementsHooks (attribute-based).
+ * Runtime requirements live in graphql_compose_codegen.install
+ * (hook_requirements), which runs across the whole supported core range.
  */
 
 declare(strict_types=1);

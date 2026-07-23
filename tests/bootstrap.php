@@ -1,13 +1,13 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * @file
  * Bootstrap file for unit tests that don't need the full Drupal stack.
  *
  * Loads the project autoloader and registers the module's namespaces.
  */
+
+declare(strict_types=1);
 
 use Composer\Autoload\ClassLoader;
 
