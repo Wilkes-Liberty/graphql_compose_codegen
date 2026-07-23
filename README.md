@@ -24,7 +24,7 @@ Built by **Jeremy Michael Cerda** (jmcerda@wilkesliberty.com). Maintained by [Wi
 
 ## Requirements
 
-- Drupal 10.2 or 11
+- Drupal 10.6, or 11.3 and up
 - `graphql_compose` 2.1 or higher
 - Drush 12 or 13
 - PHP 8.1+
@@ -39,7 +39,7 @@ install this module.
 ## Installation
 
 ```bash
-composer require 'drupal/graphql_compose_codegen:^1.0.0-rc1'
+composer require drupal/graphql_compose_codegen
 drush en graphql_compose_codegen
 ```
 
