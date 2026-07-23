@@ -9,6 +9,26 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+### Added
+
+- GitHub Actions `tests.yml`: a PHPUnit matrix that runs the Unit and Kernel
+  suites against each declared core floor (10.6, 11.3) plus the 11 ceiling.
+  Each leg asserts the resolved core version and a collected-test-count floor,
+  so a support claim is exercised rather than merely declared.
+
+### Changed
+
+- Narrowed `core_version_requirement` to `^10.6 || ^11.3` (was `^10.2 || ^11`),
+  dropping Drupal branches that are end-of-life upstream. The remaining claim is
+  now tested in CI on every supported floor.
+
+### Fixed
+
+- The runtime requirements report (Status report) now runs on Drupal 10.x. It
+  used the OOP `hook_runtime_requirements()` / `#[Hook]` form, which exists only
+  on Drupal 11.1/11.2+, so its checks silently never ran on the 10.6 floor; it
+  now uses the portable procedural `hook_requirements()`.
+
 ### Documentation
 
 - Install command shows the `^1.0.0-rc1` constraint so it works on projects with default (stable) minimum-stability while only the RC is released.
