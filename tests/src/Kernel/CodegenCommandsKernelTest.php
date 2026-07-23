@@ -14,6 +14,8 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  * Kernel test verifying generator output for a real bundle.
  *
  * @group graphql_compose_codegen
+ *
+ * @runTestsInSeparateProcesses
  */
 #[RunTestsInSeparateProcesses]
 final class CodegenCommandsKernelTest extends KernelTestBase {

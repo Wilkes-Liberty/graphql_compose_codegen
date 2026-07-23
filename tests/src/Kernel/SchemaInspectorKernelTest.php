@@ -14,6 +14,8 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  * Kernel test for the SchemaInspector service against a real node bundle.
  *
  * @group graphql_compose_codegen
+ *
+ * @runTestsInSeparateProcesses
  */
 #[RunTestsInSeparateProcesses]
 final class SchemaInspectorKernelTest extends KernelTestBase {
