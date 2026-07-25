@@ -17,8 +17,10 @@ declare(strict_types=1);
  *
  * @param array $context
  *   Keyed:
- *   - bundles: list of node bundle IDs being processed (paragraph bundles
- *     are always included if paragraphs module is installed).
+ *   - bundles: list of node bundle IDs being processed.
+ *   - paragraph_bundles: list of paragraph bundle IDs being processed
+ *     (empty when the paragraphs module is not installed or no paragraph
+ *     bundle matches the --bundles filter).
  *   - output_dir: absolute output directory, or empty string for stdout mode.
  *   - overwrite: whether existing files will be overwritten.
  *   - dry_run: whether this is a preview-only run.

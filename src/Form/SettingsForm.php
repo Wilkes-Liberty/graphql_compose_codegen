@@ -21,8 +21,10 @@ final class SettingsForm extends ConfigFormBase {
   private const TS_IDENTIFIER_RE = '/^[A-Za-z_$][A-Za-z0-9_$]*$/';
 
   public function __construct(
-    private readonly EntityTypeBundleInfoInterface $bundleInfo,
-    private readonly EntityFieldManagerInterface $fieldManager,
+    // Protected and mutable: FormBase carries DependencySerializationTrait,
+    // which cannot restore private or readonly properties on unserialize.
+    protected EntityTypeBundleInfoInterface $bundleInfo,
+    protected EntityFieldManagerInterface $fieldManager,
   ) {}
 
   /**

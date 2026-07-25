@@ -6,6 +6,3 @@ parameters:
     - graphql_compose_codegen.module
   excludePaths:
     - tests/fixtures/*
-  ignoreErrors:
-    # Drupal hook signatures intentionally use loose typing on $entity_type_id / $bundle.
-    - '#Function graphql_compose_codegen_.* has parameter \$.* with no type specified.#'

@@ -70,4 +70,33 @@ final class SchemaInspectorTest extends TestCase {
     self::assertSame('title', $i->toGqlFieldName('title'));
   }
 
+  /**
+   * @covers ::deriveParagraphAlias */
+  public function testParagraphAliasDerivation(): void {
+    $i = $this->inspector();
+    // First segment of the stripped bundle name prefixes the field name.
+    self::assertSame('tabItems', $i->deriveParagraphAlias('p_tab_group', 'items'));
+    self::assertSame('heroTitle', $i->deriveParagraphAlias('p_hero', 'title'));
+    self::assertSame('noticeTitle', $i->deriveParagraphAlias('p_notice', 'title'));
+    // Bundles without the p_ prefix use their own first segment.
+    self::assertSame('useTitle', $i->deriveParagraphAlias('use_case', 'title'));
+  }
+
+  /**
+   * @covers ::deriveParagraphAlias */
+  public function testParagraphAliasFullBundleFallback(): void {
+    $i = $this->inspector();
+    self::assertSame('tabGroupItems', $i->deriveParagraphAlias('p_tab_group', 'items', TRUE));
+    self::assertSame('useCaseTitle', $i->deriveParagraphAlias('use_case', 'title', TRUE));
+  }
+
+  /**
+   * @covers ::getComponentNameForParagraph */
+  public function testParagraphComponentName(): void {
+    $i = $this->inspector();
+    self::assertSame('FaqGroupParagraph', $i->getComponentNameForParagraph('p_faq_group'));
+    self::assertSame('CapabilityParagraph', $i->getComponentNameForParagraph('capability'));
+    self::assertSame('HeroParagraph', $i->getComponentNameForParagraph('p_hero'));
+  }
+
 }
