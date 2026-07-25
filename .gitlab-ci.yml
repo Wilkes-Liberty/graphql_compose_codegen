@@ -22,11 +22,12 @@ variables:
   _PROJECT_NAME: "graphql_compose_codegen"
 
   # Required contrib dependencies that are not in core.
-  # These are installed alongside the module under test. paragraphs is a
-  # test-only dependency: the paragraph-scaffolding kernel tests need it.
+  # These are installed alongside the module under test. paragraphs and
+  # webform are test-only dependencies for the scaffolding kernel tests.
   _PHPUNIT_EXTRA_DEPENDENCIES: >-
     drupal/graphql_compose:^2.1
     drupal/paragraphs:^1.15
+    drupal/webform:^6.3@RC
 
 ################
 # Optional: enable a parallel Drupal 11 job
