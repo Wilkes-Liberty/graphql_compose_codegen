@@ -56,8 +56,17 @@ final class PathGuard {
     // fall back to lexical normalisation of the absolute path.
     $resolved = realpath($absolute) ?: $this->lexicalNormalise($absolute);
 
+    // On macOS, /etc, /tmp and /var are symlinks into /private, so
+    // realpath('/etc') resolves to /private/etc. Compare the
+    // /private-stripped form as well, and reject /private itself.
+    $stripped = str_starts_with($resolved, '/private/')
+      ? substr($resolved, strlen('/private'))
+      : $resolved;
+    if ($resolved === '/private') {
+      throw new \InvalidArgumentException("Refusing to write at '/private' (dangerous filesystem root).");
+    }
     foreach (self::ALWAYS_REJECT as $bad) {
-      if ($resolved === $bad) {
+      if ($resolved === $bad || $stripped === $bad) {
         throw new \InvalidArgumentException("Refusing to write at '{$bad}' (dangerous filesystem root).");
       }
     }

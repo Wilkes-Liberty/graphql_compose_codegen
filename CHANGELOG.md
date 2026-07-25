@@ -57,6 +57,14 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
   bundles (`--bundles=<bundle> --overwrite`) and name the correct renderer
   (ParagraphRenderer) on paragraph bundle deletion.
 
+### Fixed
+
+- PathGuard now rejects the macOS `/private` variants of the dangerous
+  filesystem roots. On macOS, `/etc`, `/tmp` and `/var` are symlinks into
+  `/private`, so `realpath('/etc')` resolves to `/private/etc` and slipped
+  past the `--output-dir` dangerous-root check on Mac hosts (issue
+  [#3613237](https://www.drupal.org/project/graphql_compose_codegen/issues/3613237)).
+
 ### Tests
 
 - Kernel fixture reproducing the response-key merge trap (optional

@@ -121,4 +121,32 @@ final class PathGuardTest extends TestCase {
     $this->guard()->validate('/etc', allowExternal: TRUE);
   }
 
+  /**
+   * Rejects the macOS /private variants of the dangerous roots.
+   *
+   * On macOS /etc, /tmp and /var are symlinks into /private, so realpath()
+   * resolves them to /private/etc etc. — which must be rejected too. The
+   * literal /private paths exercise the same comparison on Linux, where
+   * they fall through realpath() to lexical normalisation.
+   *
+   * @covers ::validate */
+  public function testAllowExternalRejectsMacosPrivateVariants(): void {
+    $this->expectException(\InvalidArgumentException::class);
+    $this->guard()->validate('/private/etc', allowExternal: TRUE);
+  }
+
+  /**
+   * @covers ::validate */
+  public function testAllowExternalRejectsMacosPrivateTmp(): void {
+    $this->expectException(\InvalidArgumentException::class);
+    $this->guard()->validate('/private/tmp', allowExternal: TRUE);
+  }
+
+  /**
+   * @covers ::validate */
+  public function testAllowExternalRejectsPrivateItself(): void {
+    $this->expectException(\InvalidArgumentException::class);
+    $this->guard()->validate('/private', allowExternal: TRUE);
+  }
+
 }
