@@ -9,6 +9,8 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+## [1.1.0] — 2026-07-25
+
 ### Added
 
 - `gqcc:inspect` now lists paragraph bundles alongside node bundles, in the
