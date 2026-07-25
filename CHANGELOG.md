@@ -65,6 +65,9 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
   graphql_compose config handling. `drupal/paragraphs` added to require-dev
   and both CI pipelines; the GitHub Actions collected-test floor raised from
   20 to 30.
+- Kernel coverage for the schema-change log notices: the suggested command
+  in each notice (bundle create, bundle delete, field insert) is asserted
+  verbatim, so a tip that would silently generate nothing fails the suite.
 
 ## [1.0.0] — 2026-07-23
 
