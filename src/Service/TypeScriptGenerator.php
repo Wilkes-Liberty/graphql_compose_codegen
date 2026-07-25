@@ -35,6 +35,50 @@ BANNER;
   ) {}
 
   /**
+   * Builds the complete artefact set (node + paragraph) for the given filters.
+   *
+   * Node artefacts are only included when at least one node bundle matches
+   * the filter, and paragraph artefacts only when at least one paragraph
+   * bundle matches — so a paragraph-only run never overwrites node scaffold
+   * files with empty ones (and vice versa).
+   *
+   * @param string[] $bundles
+   *   Bundle IDs (node or paragraph) to include. Empty means all.
+   * @param string[] $skipFields
+   *   Field names to exclude.
+   *
+   * @return array<string, string>
+   *   Artefact content keyed by relative output path.
+   */
+  public function buildArtefacts(array $bundles = [], array $skipFields = []): array {
+    $artefacts = [];
+
+    $nodeBundles = $this->inspector->getBundles($bundles);
+    if ($nodeBundles) {
+      $artefacts['types.generated.d.ts'] = $this->generateTypeDefinitions($bundles, $skipFields);
+      $artefacts['fragments.generated.ts'] = $this->generateFragments($bundles, $skipFields);
+      $artefacts['node-renderer-cases.generated.tsx'] = $this->generateRendererCases($bundles);
+      foreach (array_keys($nodeBundles) as $bundle) {
+        $component = str_replace('Drupal', '', $this->inspector->getTsTypeName($bundle));
+        $artefacts["components/{$component}.generated.tsx"] = $this->generateComponentStub($bundle);
+      }
+    }
+
+    $paragraphBundles = $this->inspector->getParagraphBundles($bundles);
+    if ($paragraphBundles) {
+      $artefacts['paragraphs/types.generated.d.ts'] = $this->generateParagraphTypeDefinitions($bundles, $skipFields);
+      $artefacts['paragraphs/fragments.generated.ts'] = $this->generateParagraphFragments($bundles, $skipFields);
+      $artefacts['paragraphs/paragraph-renderer-cases.generated.tsx'] = $this->generateParagraphRendererCases($bundles);
+      foreach (array_keys($paragraphBundles) as $bundle) {
+        $component = $this->inspector->getComponentNameForParagraph($bundle);
+        $artefacts["paragraphs/components/{$component}.generated.tsx"] = $this->generateParagraphComponentStub($bundle);
+      }
+    }
+
+    return $artefacts;
+  }
+
+  /**
    * Generates TypeScript type definitions for node bundles.
    *
    * @param string[] $bundles
@@ -211,25 +255,25 @@ BANNER;
     $lines[] = '';
 
     $bundleInfo = $this->inspector->getParagraphBundles($bundles);
-    if (!$bundleInfo) {
+    $map = $this->inspector->getParagraphFieldMap($bundles, $skipFields);
+    if (!$map) {
       $lines[] = '// (No paragraph bundles found — paragraphs module may not be installed.)';
       return implode("\n", $lines);
     }
 
-    foreach ($bundleInfo as $bundle => $info) {
+    foreach ($map as $bundle => $entry) {
       $tsType = $this->inspector->getTsTypeNameForParagraph($bundle);
       $gqlType = $this->inspector->getGraphQlTypeNameForParagraph($bundle);
-      $fields = $this->inspector->getFieldsForParagraphBundle($bundle, $skipFields);
-      $label = (string) ($info['label'] ?? $bundle);
+      $label = (string) ($bundleInfo[$bundle]['label'] ?? $bundle);
 
       $lines[] = "// {$label}";
       $lines[] = "export type {$tsType} = {";
       $lines[] = "  __typename: \"{$gqlType}\"";
-      foreach ($fields as $field) {
+      foreach ($entry['fields'] as $field) {
         $opt = $field['required'] ? '' : '?';
         $nullable = $field['required'] ? '' : ' | null';
         $lines[] = "  // Drupal: {$field['name']} ({$field['drupal_type']})";
-        $lines[] = "  {$field['gql_name']}{$opt}: {$field['ts_type']}{$nullable}";
+        $lines[] = "  {$field['response_key']}{$opt}: {$field['ts_type']}{$nullable}";
       }
       $lines[] = '}';
       $lines[] = '';
@@ -237,7 +281,7 @@ BANNER;
 
     $unionMembers = array_map(
       fn(string $b) => $this->inspector->getTsTypeNameForParagraph($b),
-      array_keys($bundleInfo)
+      array_keys($map)
     );
     $lines[] = '// ── DrupalParagraph union ──────────────────────────────────────────────────';
     $lines[] = 'export type DrupalParagraph =';
@@ -267,27 +311,146 @@ BANNER;
     $lines[] = '';
 
     $bundleInfo = $this->inspector->getParagraphBundles($bundles);
-    if (!$bundleInfo) {
+    // The full map is needed even when generating a subset: nested child
+    // selections are built from the child bundle's own field list.
+    $fullMap = $this->inspector->getParagraphFieldMap([], $skipFields);
+    $map = $bundles ? array_intersect_key($fullMap, array_flip($bundles)) : $fullMap;
+    if (!$map) {
       $lines[] = '// (No paragraph bundles found — paragraphs module may not be installed.)';
       return implode("\n", $lines);
     }
 
-    foreach ($bundleInfo as $bundle => $info) {
+    $childOnly = [];
+    foreach ($map as $bundle => $entry) {
       $gqlType = $this->inspector->getGraphQlTypeNameForParagraph($bundle);
-      $label = (string) ($info['label'] ?? $bundle);
-      $fields = $this->inspector->getFieldsForParagraphBundle($bundle, $skipFields);
+      if ($entry['child_only']) {
+        $childOnly[] = $gqlType;
+        continue;
+      }
+      $label = (string) ($bundleInfo[$bundle]['label'] ?? $bundle);
 
       $lines[] = "// {$label}";
       $lines[] = "... on {$gqlType} {";
       $lines[] = '  __typename';
-      foreach ($fields as $field) {
-        $lines[] = "  " . $this->getGqlSelector($field);
+      foreach ($entry['fields'] as $field) {
+        foreach ($this->getParagraphSelectorLines($field, $fullMap) as $selectorLine) {
+          $lines[] = $selectorLine;
+        }
       }
       $lines[] = '}';
       $lines[] = '';
     }
 
+    if ($childOnly) {
+      $lines[] = '// Nested-only bundles (selected inside their parents above): '
+        . implode(', ', $childOnly);
+    }
+
     return implode("\n", $lines);
+  }
+
+  /**
+   * Generates switch-case stubs for a Next.js ParagraphRenderer component.
+   *
+   * @param string[] $bundles
+   *   Optional list of paragraph bundle IDs. Empty means all bundles.
+   *
+   * @return string
+   *   Commented-out import + case statements for hand-merging.
+   */
+  public function generateParagraphRendererCases(array $bundles = []): string {
+    $lines = [self::FILE_BANNER, ''];
+    $lines[] = '// ── Add these cases to components/drupal/paragraphs/ParagraphRenderer.tsx ──';
+    $lines[] = '// 1. Import each new component at the top of ParagraphRenderer.tsx.';
+    $lines[] = '// 2. Add the import { ... } lines below.';
+    $lines[] = '// 3. Add each case inside the switch(paragraph.__typename) block.';
+    $lines[] = '';
+
+    $bundleInfo = $this->inspector->getParagraphBundles($bundles);
+    $map = $this->inspector->getParagraphFieldMap($bundles);
+    if (!$map) {
+      $lines[] = '// (No paragraph bundles found — paragraphs module may not be installed.)';
+      return implode("\n", $lines);
+    }
+
+    $imports = [];
+    $cases = [];
+    $childOnly = [];
+    foreach ($map as $bundle => $entry) {
+      $gqlType = $this->inspector->getGraphQlTypeNameForParagraph($bundle);
+      if ($entry['child_only']) {
+        $childOnly[] = $gqlType;
+        continue;
+      }
+      $tsType = $this->inspector->getTsTypeNameForParagraph($bundle);
+      $component = $this->inspector->getComponentNameForParagraph($bundle);
+      $label = (string) ($bundleInfo[$bundle]['label'] ?? $bundle);
+
+      $imports[] = "import { {$component} } from \"./{$component}\"";
+      $cases[] = "      // {$label}";
+      $cases[] = "      case \"{$gqlType}\":";
+      $cases[] = "        return <{$component} data={paragraph as {$tsType}} />";
+      $cases[] = '';
+    }
+
+    $lines[] = '// Imports:';
+    foreach ($imports as $i) {
+      $lines[] = "// {$i}";
+    }
+    $lines[] = '';
+    $lines[] = '// Cases (inside switch(paragraph.__typename)):';
+    foreach ($cases as $c) {
+      $lines[] = "// {$c}";
+    }
+    if ($childOnly) {
+      $lines[] = '// Nested-only bundles render through their parents and need no case:';
+      $lines[] = '//   ' . implode(', ', $childOnly);
+    }
+
+    return implode("\n", $lines);
+  }
+
+  /**
+   * Builds the selector line(s) for one field of a paragraph fragment.
+   *
+   * Paragraph references expand to nested inline fragments, one level deep,
+   * for their allowed target bundles — never to the PARAGRAPH_FRAGMENTS
+   * placeholder, which would make the template literal self-referential.
+   * A reference field two levels down selects only __typename.
+   *
+   * @param array<string, mixed> $field
+   *   A field descriptor including response_key.
+   * @param array<string, array{child_only: bool, fields: array<string, mixed>}> $fullMap
+   *   The unfiltered paragraph field map, for child bundle lookups.
+   *
+   * @return string[]
+   *   Lines indented for placement inside a fragment body.
+   */
+  private function getParagraphSelectorLines(array $field, array $fullMap): array {
+    $alias = $field['response_key'] !== $field['gql_name'] ? "{$field['response_key']}: " : '';
+
+    if (($field['target_type'] ?? NULL) !== 'paragraph') {
+      return ["  {$alias}" . $this->getGqlSelector($field)];
+    }
+
+    if (!$field['target_bundles']) {
+      return ["  {$alias}{$field['gql_name']} { __typename } # TODO: unrestricted paragraph reference — add inline fragments"];
+    }
+
+    $lines = ["  {$alias}{$field['gql_name']} {", '    __typename'];
+    foreach ($field['target_bundles'] as $target) {
+      $childGqlType = $this->inspector->getGraphQlTypeNameForParagraph($target);
+      $selectors = [];
+      foreach (($fullMap[$target]['fields'] ?? []) as $childField) {
+        $selectors[] = ($childField['target_type'] ?? NULL) === 'paragraph'
+          ? "{$childField['gql_name']} { __typename }"
+          : $this->getGqlSelector($childField);
+      }
+      $inner = $selectors ? implode(' ', $selectors) : '__typename';
+      $lines[] = "    ... on {$childGqlType} { {$inner} }";
+    }
+    $lines[] = '  }';
+    return $lines;
   }
 
   /**
@@ -302,9 +465,10 @@ BANNER;
   public function generateParagraphComponentStub(string $bundle): string {
     $tsType = $this->inspector->getTsTypeNameForParagraph($bundle);
     $gqlType = $this->inspector->getGraphQlTypeNameForParagraph($bundle);
-    $component = str_replace('Drupal', '', $tsType);
+    $component = $this->inspector->getComponentNameForParagraph($bundle);
     $label = str_replace('_', ' ', ucwords($bundle, '_'));
-    $fields = $this->inspector->getFieldsForParagraphBundle($bundle);
+    $map = $this->inspector->getParagraphFieldMap([$bundle]);
+    $fields = $map[$bundle]['fields'] ?? [];
     return $this->buildComponent($component, $tsType, $gqlType, $label, $fields, TRUE);
   }
 
@@ -328,8 +492,10 @@ BANNER;
    *   The TSX component stub content.
    */
   private function buildComponent(string $component, string $tsType, string $gqlType, string $label, array $fields, bool $isParagraph = FALSE): string {
+    $targetDir = $isParagraph ? 'components/drupal/paragraphs/' : 'components/drupal/';
+    $prop = $isParagraph ? 'data' : 'node';
     $lines = [self::FILE_BANNER, ''];
-    $lines[] = '// ── Rename to ' . $component . '.tsx and move to components/drupal/ ─────────────';
+    $lines[] = "// ── Rename to {$component}.tsx and move to {$targetDir} ─────────────";
     $lines[] = "import type { {$tsType} } from \"@/types\"";
     $lines[] = '';
     $lines[] = "/**";
@@ -338,7 +504,7 @@ BANNER;
     $lines[] = " * GraphQL type: {$gqlType}";
     $lines[] = " * Replace this stub with your actual layout.";
     $lines[] = " */";
-    $lines[] = "export function {$component}({ node }: { node: {$tsType} }) {";
+    $lines[] = "export function {$component}({ {$prop} }: { {$prop}: {$tsType} }) {";
     $lines[] = "  return (";
     $tag = $isParagraph ? 'section' : 'article';
     $lines[] = "    <{$tag}>";
@@ -348,7 +514,8 @@ BANNER;
     }
     $lines[] = "      {/* TODO: render {$label} — available fields: */}";
     foreach ($fields as $field) {
-      $lines[] = "      {/* {$field['gql_name']}: {$field['ts_type']} */}";
+      $key = $field['response_key'] ?? $field['gql_name'];
+      $lines[] = "      {/* {$key}: {$field['ts_type']} */}";
     }
     if (empty($fields)) {
       $lines[] = "      {/* (no extra fields) */}";

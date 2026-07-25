@@ -6,6 +6,7 @@ namespace Drupal\Tests\graphql_compose_codegen\Kernel;
 
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\NodeType;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Kernel test for the runtime requirements report.
@@ -15,8 +16,11 @@ use Drupal\node\Entity\NodeType;
  * the procedural hook_requirements($phase); this test pins it on every core
  * version the module claims (^10.6 || ^11.3).
  *
+ * @runTestsInSeparateProcesses
+ *
  * @group graphql_compose_codegen
  */
+#[RunTestsInSeparateProcesses]
 final class RequirementsKernelTest extends KernelTestBase {
 
   /**

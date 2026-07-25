@@ -49,7 +49,7 @@ final class CodegenCommands extends DrushCommands {
   }
 
   /**
-   * Lists all node bundles and their extra (non-base-type) fields.
+   * Lists all node + paragraph bundles and their extra fields.
    */
   #[CLI\Command(
     name: 'graphql-compose-codegen:inspect',
@@ -57,29 +57,54 @@ final class CodegenCommands extends DrushCommands {
   )]
   #[CLI\Option(name: 'bundles', description: 'Comma-separated bundle IDs to inspect (omit for all bundles).')]
   #[CLI\Option(name: 'skip-fields', description: 'Comma-separated additional field names to exclude.')]
-  #[CLI\Usage(name: 'drush gqcc:inspect', description: 'List all node bundles and their extra fields.')]
+  #[CLI\Usage(name: 'drush gqcc:inspect', description: 'List all node and paragraph bundles and their extra fields.')]
   #[CLI\Usage(name: 'drush gqcc:inspect --bundles=platform,service', description: 'Inspect only the listed bundles.')]
   public function inspect(array $options = ['bundles' => '', 'skip-fields' => '']): void {
     $only = $this->parseList((string) ($options['bundles'] ?? ''));
     $skip = $this->parseList((string) ($options['skip-fields'] ?? ''));
 
     $bundleInfo = $this->inspector->getBundles($only);
-    if (!$bundleInfo) {
+    $paragraphMap = $this->inspector->getParagraphFieldMap($only, $skip);
+    if (!$bundleInfo && !$paragraphMap) {
       $this->logger()->warning('No matching bundles found.');
       return;
     }
 
     foreach ($bundleInfo as $bundle => $info) {
-      $this->writeBundleHeader($bundle, (string) ($info['label'] ?? $bundle));
+      $this->writeBundleHeader(
+        $bundle,
+        (string) ($info['label'] ?? $bundle),
+        $this->inspector->getGraphQlTypeName($bundle),
+        $this->inspector->getTsTypeName($bundle),
+      );
       $fields = $this->inspector->getFieldsForBundle($bundle, $skip);
       $this->writeFields($fields);
       $this->output()->writeln('└──');
     }
 
+    if ($paragraphMap) {
+      $paragraphInfo = $this->inspector->getParagraphBundles($only);
+      $this->output()->writeln('');
+      $this->output()->writeln('  Paragraph bundles (enabled in graphql_compose):');
+      foreach ($paragraphMap as $bundle => $entry) {
+        $this->writeBundleHeader(
+          $bundle,
+          (string) ($paragraphInfo[$bundle]['label'] ?? $bundle),
+          $this->inspector->getGraphQlTypeNameForParagraph($bundle),
+          $this->inspector->getTsTypeNameForParagraph($bundle),
+        );
+        if ($entry['child_only']) {
+          $this->output()->writeln('│  (nested-only: selected inside its parent bundles)');
+        }
+        $this->writeFields($entry['fields']);
+        $this->output()->writeln('└──');
+      }
+    }
+
     $this->output()->writeln('');
     $this->output()->writeln(sprintf(
       "  %d bundle(s) inspected. Run <comment>drush gqcc:generate</comment> to scaffold.",
-      count($bundleInfo)
+      count($bundleInfo) + count($paragraphMap)
     ));
   }
 
@@ -130,15 +155,17 @@ final class CodegenCommands extends DrushCommands {
     }
 
     $bundleInfo = $this->inspector->getBundles($only);
-    if (!$bundleInfo) {
-      $this->logger()->warning('No matching node bundles found.');
+    $paragraphBundles = $this->inspector->getParagraphBundles($only);
+    if (!$bundleInfo && !$paragraphBundles) {
+      $this->logger()->warning('No matching bundles found.');
       return;
     }
 
-    $artefacts = $this->buildArtefacts($only, $skip);
+    $artefacts = $this->generator->buildArtefacts($only, $skip);
 
     $context = [
       'bundles' => array_keys($bundleInfo),
+      'paragraph_bundles' => array_keys($paragraphBundles),
       'output_dir' => $outputDir,
       'overwrite' => $overwrite,
       'dry_run' => $dryRun,
@@ -177,7 +204,7 @@ final class CodegenCommands extends DrushCommands {
 
     $only = $this->parseList((string) ($options['bundles'] ?? ''));
     $skip = $this->parseList((string) ($options['skip-fields'] ?? ''));
-    $artefacts = $this->buildArtefacts($only, $skip);
+    $artefacts = $this->generator->buildArtefacts($only, $skip);
     $diff = $this->snapshot->diff($artefacts);
 
     $this->output()->writeln(sprintf('  Added:   %d', count($diff['added'])));
@@ -228,7 +255,7 @@ final class CodegenCommands extends DrushCommands {
 
     $only = $this->parseList((string) ($options['bundles'] ?? ''));
     $skip = $this->parseList((string) ($options['skip-fields'] ?? ''));
-    $current = $this->buildArtefacts($only, $skip);
+    $current = $this->generator->buildArtefacts($only, $skip);
 
     $report = $this->snapshot->compareDisk($outputDir . '/generated', $current);
     $bad = count($report['missing']) + count($report['stale']);
@@ -249,41 +276,6 @@ final class CodegenCommands extends DrushCommands {
     }
     $this->logger()->error(sprintf('%d file(s) out of sync. Run gqcc:generate to refresh.', $bad));
     return self::EXIT_FAILURE;
-  }
-
-  /**
-   * Builds the complete artefact set (node + paragraph) for the given filters.
-   *
-   * @param string[] $only
-   *   Bundle IDs to include (empty = all).
-   * @param string[] $skip
-   *   Field names to exclude.
-   *
-   * @return array<string, string>
-   *   Relative path to artefact content.
-   */
-  private function buildArtefacts(array $only, array $skip): array {
-    $artefacts = [
-      'types.generated.d.ts' => $this->generator->generateTypeDefinitions($only, $skip),
-      'fragments.generated.ts' => $this->generator->generateFragments($only, $skip),
-      'node-renderer-cases.generated.tsx' => $this->generator->generateRendererCases($only),
-    ];
-    foreach (array_keys($this->inspector->getBundles($only)) as $bundle) {
-      $component = str_replace('Drupal', '', $this->inspector->getTsTypeName($bundle));
-      $artefacts["components/{$component}.generated.tsx"] = $this->generator->generateComponentStub($bundle);
-    }
-
-    $paragraphBundles = $this->inspector->getParagraphBundles();
-    if ($paragraphBundles) {
-      $artefacts['paragraphs/types.generated.d.ts'] = $this->generator->generateParagraphTypeDefinitions([], $skip);
-      $artefacts['paragraphs/fragments.generated.ts'] = $this->generator->generateParagraphFragments([], $skip);
-      foreach (array_keys($paragraphBundles) as $pBundle) {
-        $component = str_replace('Drupal', '', $this->inspector->getTsTypeNameForParagraph($pBundle));
-        $artefacts["paragraphs/components/{$component}.generated.tsx"] = $this->generator->generateParagraphComponentStub($pBundle);
-      }
-    }
-
-    return $artefacts;
   }
 
   /**
@@ -367,10 +359,12 @@ final class CodegenCommands extends DrushCommands {
    *   The bundle machine name.
    * @param string $label
    *   The human-readable bundle label.
+   * @param string $gqlType
+   *   The GraphQL type name.
+   * @param string $tsType
+   *   The TypeScript type name.
    */
-  private function writeBundleHeader(string $bundle, string $label): void {
-    $gqlType = $this->inspector->getGraphQlTypeName($bundle);
-    $tsType = $this->inspector->getTsTypeName($bundle);
+  private function writeBundleHeader(string $bundle, string $label, string $gqlType, string $tsType): void {
     $this->output()->writeln(sprintf("\n┌─ <info>%s</info> (%s)", $label, $bundle));
     $this->output()->writeln(sprintf("│  GQL: <comment>%s</comment>    TS: <comment>%s</comment>", $gqlType, $tsType));
     $this->output()->writeln("│");
@@ -389,9 +383,13 @@ final class CodegenCommands extends DrushCommands {
     }
     foreach ($fields as $fieldName => $field) {
       $req = $field['required'] ? '  ' : '? ';
+      // Aliased response keys display as "tabItems: items".
+      $displayName = isset($field['response_key']) && $field['response_key'] !== $field['gql_name']
+        ? "{$field['response_key']}: {$field['gql_name']}"
+        : $field['gql_name'];
       $this->output()->writeln(sprintf(
         "│  %-45s <info>%s</info>%s  # %s (%s)",
-        $field['gql_name'] . $req,
+        $displayName . $req,
         $field['ts_type'],
         str_repeat(' ', max(0, 30 - strlen($field['ts_type']))),
         $fieldName,

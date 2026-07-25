@@ -31,9 +31,9 @@ function graphql_compose_codegen_help(string $route_name, RouteMatchInterface $r
   $output .= '<h2>' . t('Commands') . '</h2>';
   $output .= '<dl>';
   $output .= '<dt><code>drush gqcc:inspect</code></dt>';
-  $output .= '<dd>' . t('List every node bundle and its extra (non-base-type) fields.') . '</dd>';
+  $output .= '<dd>' . t('List every node and paragraph bundle and its extra (non-base-type) fields.') . '</dd>';
   $output .= '<dt><code>drush gqcc:generate</code></dt>';
-  $output .= '<dd>' . t('Write scaffold artefacts (TypeScript types, GraphQL fragments, NodeRenderer cases, per-bundle component stubs) to a Next.js project.') . '</dd>';
+  $output .= '<dd>' . t('Write scaffold artefacts (TypeScript types, GraphQL fragments, NodeRenderer and ParagraphRenderer cases, per-bundle component stubs) to a Next.js project.') . '</dd>';
   $output .= '<dt><code>drush gqcc:diff</code></dt>';
   $output .= '<dd>' . t('Compare the current schema against the last generation snapshot.') . '</dd>';
   $output .= '<dt><code>drush gqcc:validate</code></dt>';
@@ -52,9 +52,9 @@ function graphql_compose_codegen_entity_bundle_create(string $entity_type_id, st
   if (!in_array($entity_type_id, ['node', 'paragraph'], TRUE)) {
     return;
   }
-  $tip = $entity_type_id === 'node'
-    ? 'drush gqcc:generate --bundles=' . $bundle . ' --output-dir=/path/to/nextjs'
-    : 'drush gqcc:generate --output-dir=/path/to/nextjs  # paragraph bundles regenerate together';
+  // --overwrite is needed because the shared types/fragments files already
+  // exist after the first generate run and would otherwise be skipped.
+  $tip = 'drush gqcc:generate --bundles=' . $bundle . ' --output-dir=/path/to/nextjs --overwrite';
   \Drupal::logger('graphql_compose_codegen')->notice(
     'New @type bundle "@bundle" created. Run <code>@tip</code> to scaffold TypeScript types, GraphQL fragments, and a component stub.',
     [
@@ -73,10 +73,11 @@ function graphql_compose_codegen_entity_bundle_delete(string $entity_type_id, st
     return;
   }
   \Drupal::logger('graphql_compose_codegen')->warning(
-    'The @type bundle "@bundle" was deleted. Manually remove the corresponding TypeScript type, the inline fragment, and the NodeRenderer case from your Next.js project.',
+    'The @type bundle "@bundle" was deleted. Manually remove the corresponding TypeScript type, the inline fragment, and the @renderer case from your Next.js project.',
     [
       '@type' => $entity_type_id,
       '@bundle' => $bundle,
+      '@renderer' => $entity_type_id === 'node' ? 'NodeRenderer' : 'ParagraphRenderer',
     ]
   );
 }

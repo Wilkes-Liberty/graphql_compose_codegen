@@ -9,6 +9,63 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+### Added
+
+- `gqcc:inspect` now lists paragraph bundles alongside node bundles, in the
+  same visual style, with GraphQL/TypeScript names, aliased response keys,
+  and a nested-only marker for bundles that render inside their parents
+  (issue [#3613218](https://www.drupal.org/project/graphql_compose_codegen/issues/3613218)).
+- New paragraph artefact: `paragraphs/paragraph-renderer-cases.generated.tsx`
+  — switch-case stubs for a `ParagraphRenderer` component (switch on
+  `__typename`, `data` prop, `default: return null`). Paragraph bundles now
+  get the same four artefact types as node bundles.
+- Response-key collision handling: when two paragraph bundles select the same
+  field name with incompatible shapes (e.g. required vs optional sub-fields —
+  `String!` vs `String`), GraphQL forbids merging the shared response key
+  across the union, so the generator aliases the later bundle's field
+  (`tabItems: items`) and keeps the TypeScript property name aligned with
+  the alias. Aliases are computed across all enabled bundles, so `--bundles`
+  subset runs emit the same names as a full run.
+- Nested paragraph references (`entity_reference_revisions` targeting
+  paragraphs) now emit nested inline fragments for the allowed target
+  bundles (`handler_settings.target_bundles`), one level deep, and
+  bundle-specific TypeScript types (`DrupalParagraphPFaqItem[]` instead of
+  the whole `DrupalParagraph` union). Previously the fragment emitted a
+  self-referential `${PARAGRAPH_FRAGMENTS}` placeholder inside the
+  `PARAGRAPH_FRAGMENTS` literal itself.
+- graphql_compose awareness: paragraph bundles are filtered by
+  `entity_config` (`enabled` + `query_load_enabled`) and paragraph fields by
+  `field_config` enablement, supporting both the 2.x config name
+  (`graphql_compose.settings`) and 3.x per-server names
+  (`graphql_compose.settings.<server_id>`). Without any graphql_compose
+  config the previous list-everything behaviour is kept.
+- `paragraph_bundles` key in the pre/post-generate hook `$context`.
+
+### Changed
+
+- `--bundles` now filters paragraph bundles too, for `gqcc:generate`,
+  `gqcc:diff`, `gqcc:validate`, and `gqcc:inspect`. A paragraph-only
+  `--bundles` run no longer aborts with "No matching node bundles found"
+  (and no longer emits empty node artefacts over real ones).
+- Paragraph component stubs use the `data` prop and `<Bundle>Paragraph`
+  naming (`FaqGroupParagraph.generated.tsx`), matching ParagraphRenderer
+  conventions; previously they used a `node` prop and `ParagraphPFaqGroup`
+  naming.
+- Generated fields are emitted in machine-name order so output is
+  deterministic across environments (field-definition order is not).
+- The schema-change log notices now emit a working command for paragraph
+  bundles (`--bundles=<bundle> --overwrite`) and name the correct renderer
+  (ParagraphRenderer) on paragraph bundle deletion.
+
+### Tests
+
+- Kernel fixture reproducing the response-key merge trap (optional
+  `p_faq_item` vs required `p_tab_item` title/body under a shared `items`
+  field) plus coverage for nesting, artefact-set composition, filtering, and
+  graphql_compose config handling. `drupal/paragraphs` added to require-dev
+  and both CI pipelines; the GitHub Actions collected-test floor raised from
+  20 to 30.
+
 ## [1.0.0] — 2026-07-23
 
 ### Added

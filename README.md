@@ -17,6 +17,12 @@ Built by **Jeremy Michael Cerda** (jmcerda@wilkesliberty.com). Maintained by [Wi
   - `fragments.generated.ts` — GraphQL inline fragments for `lib/queries/node-by-path.ts`
   - `node-renderer-cases.generated.tsx` — switch-case stubs for `NodeRenderer.tsx`
   - `components/{Name}.generated.tsx` — one bare React component stub per bundle
+
+  Paragraph bundles get the same four artefact types under `paragraphs/`:
+  - `paragraphs/types.generated.d.ts` — types joining the `DrupalParagraph` union
+  - `paragraphs/fragments.generated.ts` — the `PARAGRAPH_FRAGMENTS` block
+  - `paragraphs/paragraph-renderer-cases.generated.tsx` — switch-case stubs for `ParagraphRenderer.tsx`
+  - `paragraphs/components/{Name}Paragraph.generated.tsx` — one component stub per bundle
 - **`drush gqcc:diff`** — compare the current schema against the last generation snapshot.
 - **`drush gqcc:validate`** — verify scaffold files on disk are in sync with the live schema (useful in CI / pre-commit).
 - **Schema-change hooks** — logs a Drupal notice at `/admin/reports/dblog` whenever a node or paragraph bundle / field is created or deleted, with the exact `drush gqcc:generate` command to run.
@@ -115,10 +121,31 @@ land in `../ui/generated/`. Integrate them manually:
    for each bundle into `components/drupal/NodeRenderer.tsx`.
 4. **`components/{Name}.generated.tsx`** — rename to `{Name}.tsx`, move to
    `components/drupal/`, and implement the actual component layout.
+5. **`paragraphs/*`** — same four steps for paragraph bundles: types join the
+   `DrupalParagraph` union, fragments form the `PARAGRAPH_FRAGMENTS` template
+   literal, renderer cases go into
+   `components/drupal/paragraphs/ParagraphRenderer.tsx`, and component stubs
+   move to `components/drupal/paragraphs/`.
 
 The scaffold files in `generated/` are intentionally suffixed `.generated`
 and not referenced anywhere. Delete them once you have integrated the code
 you need.
+
+### Paragraph specifics
+
+- Only paragraph bundles enabled in graphql_compose (`enabled` +
+  `query_load_enabled` in `entity_config`) are inspected and generated, and
+  only their graphql_compose-enabled fields. Sites without any
+  graphql_compose config fall back to listing everything.
+- Paragraph references between paragraphs (`entity_reference_revisions`)
+  emit nested inline fragments for the allowed target bundles, one level
+  deep. Bundles that only appear nested (e.g. FAQ items inside an FAQ group)
+  get no top-level fragment or renderer case of their own.
+- When two bundles select the same field name with incompatible shapes
+  (required vs optional sub-fields), GraphQL refuses to merge the shared
+  response key across the union, so the generator aliases the later bundle's
+  field — e.g. `tabItems: items` — and names the TypeScript property after
+  the alias.
 
 ### Drift detection in CI
 
