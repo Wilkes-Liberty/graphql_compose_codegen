@@ -120,13 +120,14 @@ jobs:
             "drupal/graphql_compose_codegen:*@dev"
           # core-dev brings PHPUnit; pin the PHPUnit major per leg so Drupal
           # 10's ^9.6 requirement resolves. drush is pinned to ^13 for a
-          # deterministic resolve across legs. paragraphs is a test-only
-          # dependency for the paragraph-scaffolding kernel tests.
+          # deterministic resolve across legs. paragraphs and webform are
+          # test-only dependencies for the scaffolding kernel tests.
           composer require -W --dev --no-interaction --no-progress \
             "drupal/core-dev:${DRUPAL_CONSTRAINT}" \
             "phpunit/phpunit:${PHPUNIT_VERSION}" \
             "drush/drush:^13" \
-            "drupal/paragraphs:^1.15"
+            "drupal/paragraphs:^1.15" \
+            "drupal/webform:^6.3@RC"
 
       - name: Assert the versions actually under test
         working-directory: drupal

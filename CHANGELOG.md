@@ -40,6 +40,12 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
   (`graphql_compose.settings.<server_id>`). Without any graphql_compose
   config the previous list-everything behaviour is kept.
 - `paragraph_bundles` key in the pre/post-generate hook `$context`.
+- WebformMapper: the contrib `webform` field type now maps to a
+  `DrupalWebform` TypeScript type with the full graphql_compose_webform
+  selection (`id label description elements { … options { id value } }`)
+  instead of `unknown` with a TODO selector. The `DrupalWebform` helper
+  types are appended to the types artefact when a webform field is present
+  (issue [#3613232](https://www.drupal.org/project/graphql_compose_codegen/issues/3613232)).
 
 ### Changed
 

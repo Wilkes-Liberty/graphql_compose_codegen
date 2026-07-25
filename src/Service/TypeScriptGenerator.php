@@ -98,11 +98,13 @@ BANNER;
     $lines[] = '';
 
     $bundleInfo = $this->inspector->getBundles($bundles);
+    $fieldLists = [];
 
     foreach ($bundleInfo as $bundle => $info) {
       $tsType = $this->inspector->getTsTypeName($bundle);
       $gqlType = $this->inspector->getGraphQlTypeName($bundle);
       $fields = $this->inspector->getFieldsForBundle($bundle, $skipFields);
+      $fieldLists[] = $fields;
       $label = (string) ($info['label'] ?? $bundle);
 
       $lines[] = "// {$label}";
@@ -131,6 +133,10 @@ BANNER;
       $lines[] = "//   | {$member}";
     }
     $lines[] = '//   | ... (existing union members)';
+
+    foreach ($this->getWebformHelperTypeLines($fieldLists) as $helperLine) {
+      $lines[] = $helperLine;
+    }
 
     return implode("\n", $lines);
   }
@@ -288,6 +294,14 @@ BANNER;
     foreach ($unionMembers as $i => $member) {
       $sep = $i === array_key_last($unionMembers) ? ';' : '';
       $lines[] = "  | {$member}{$sep}";
+    }
+
+    $fieldLists = array_map(
+      fn(array $entry) => $entry['fields'],
+      array_values($map)
+    );
+    foreach ($this->getWebformHelperTypeLines($fieldLists) as $helperLine) {
+      $lines[] = $helperLine;
     }
 
     return implode("\n", $lines);
@@ -527,6 +541,60 @@ BANNER;
   }
 
   /**
+   * Returns TS helper-type lines for webform fields, when any are present.
+   *
+   * The shapes follow what graphql_compose_webform exposes. Emitted into the
+   * types artefact so the scaffold is self-contained; the header tells the
+   * integrator to add them once.
+   *
+   * @param array<int, array<string, mixed>> $fieldLists
+   *   One entry per bundle: that bundle's field descriptors.
+   *
+   * @return string[]
+   *   Lines to append, or an empty array when no webform field is present.
+   */
+  private function getWebformHelperTypeLines(array $fieldLists): array {
+    $needed = FALSE;
+    foreach ($fieldLists as $fields) {
+      foreach ($fields as $field) {
+        if (rtrim($field['ts_type'], '[]') === 'DrupalWebform') {
+          $needed = TRUE;
+          break 2;
+        }
+      }
+    }
+    if (!$needed) {
+      return [];
+    }
+    return [
+      '',
+      '// ── Webform helper types (add once to types/index.d.ts if not present) ─────',
+      '// Shape exposed by graphql_compose_webform.',
+      'export type DrupalWebformElementOption = {',
+      '  id?: string | null',
+      '  value?: string | null',
+      '}',
+      '',
+      'export type DrupalWebformElement = {',
+      '  webform_key?: string | null',
+      '  type?: string | null',
+      '  title?: string | null',
+      '  required?: boolean | null',
+      '  placeholder?: string | null',
+      '  description?: string | null',
+      '  options?: DrupalWebformElementOption[] | null',
+      '}',
+      '',
+      'export type DrupalWebform = {',
+      '  id?: string | null',
+      '  label?: string | null',
+      '  description?: string | null',
+      '  elements?: DrupalWebformElement[] | null',
+      '}',
+    ];
+  }
+
+  /**
    * Returns the GraphQL field selector string for a given field descriptor.
    *
    * @param array<string, mixed> $field
@@ -549,6 +617,7 @@ BANNER;
       $baseType === 'RelatedNode' => "{$name} { __typename title path }",
       $baseType === 'Author' => "{$name} { name }",
       $baseType === 'DrupalParagraph' => "{$name} { \${PARAGRAPH_FRAGMENTS} }",
+      $baseType === 'DrupalWebform' => "{$name} { id label description elements { webform_key type title required placeholder description options { id value } } }",
       $baseType === 'SmartDate' => "{$name} { value { time } endValue { time } duration timezone }",
       $baseType === 'string' => $name,
       $baseType === 'boolean' => $name,
