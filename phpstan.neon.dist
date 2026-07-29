@@ -6,3 +6,12 @@ parameters:
     - graphql_compose_codegen.module
   excludePaths:
     - tests/fixtures/*
+  ignoreErrors:
+    # The test suite uses PHPUnit attributes (#[Group], #[CoversClass], ...).
+    # This module supports Drupal 10.6, which ships PHPUnit 9 — a version with no
+    # PHPUnit\Framework\Attributes namespace at all — so when the previous-major
+    # job analyses against that stack every attribute resolves to a missing class.
+    # That is a static-analysis artifact, not a defect: PHP attributes are inert
+    # unless something reflects on them, so PHPUnit 9 ignores them and the suite
+    # passes there. Reassess when the supported floor rises above Drupal 10.
+    - "#Attribute class PHPUnit.*Attributes.* does not exist#"
