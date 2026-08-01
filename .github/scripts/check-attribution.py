@@ -183,6 +183,10 @@ def main() -> int:
     parser.add_argument("--body-file", help="file containing the PR body")
     args = parser.parse_args()
 
+    for flag, rev in (("--base", args.base), ("--head", args.head)):
+        if not re.fullmatch(r"[0-9a-f]{40}", rev):
+            parser.error(f"{flag} must be a 40-character hex SHA (got {rev!r})")
+
     findings = []
 
     try:
