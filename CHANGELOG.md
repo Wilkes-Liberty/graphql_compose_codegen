@@ -9,6 +9,14 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+### Changed
+
+- **CI: the attribution check is now the shared workflow.**
+  `.github/workflows/attribution.yml` becomes a thin caller pinned to
+  `Wilkes-Liberty/shared-ci@v1`, and the vendored `.github/scripts/` copies are
+  removed. One implementation for every repository makes copy drift structurally
+  impossible instead of merely detectable.
+
 ## [1.1.0] — 2026-07-25
 
 ### Added
