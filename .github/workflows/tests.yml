@@ -89,8 +89,24 @@ jobs:
         env:
           DRUPAL_CONSTRAINT: ${{ matrix.constraint }}
         run: |
-          composer create-project "drupal/recommended-project:${DRUPAL_CONSTRAINT}" drupal \
-            --no-interaction --no-install --no-progress
+          retry() {
+            rc=0
+            for n in 1 2 3; do
+              "$@" && return 0
+              rc=$?
+              if [ "$n" -lt 3 ]; then
+                echo "::warning::attempt $n of 3 failed (exit $rc): $* - retrying"
+                sleep "$((15 * n))"
+              fi
+            done
+            return "$rc"
+          }
+          scaffold() {
+            rm -rf drupal
+            composer create-project "drupal/recommended-project:${DRUPAL_CONSTRAINT}" drupal \
+              --no-interaction --no-install --no-progress
+          }
+          retry scaffold
           cd drupal
           # graphql_compose 3.x resolves at dev-stability on some lines; keep
           # prefer-stable so a stable release still wins when one exists.
@@ -110,19 +126,31 @@ jobs:
           DRUPAL_CONSTRAINT: ${{ matrix.constraint }}
           PHPUNIT_VERSION: ${{ matrix.phpunit }}
         run: |
+          retry() {
+            rc=0
+            for n in 1 2 3; do
+              "$@" && return 0
+              rc=$?
+              if [ "$n" -lt 3 ]; then
+                echo "::warning::attempt $n of 3 failed (exit $rc): $* - retrying"
+                sleep "$((15 * n))"
+              fi
+            done
+            return "$rc"
+          }
           # -W (--with-all-dependencies) on both: recommended-project ships a
           # composer.lock, so each require is a *partial* update and composer
           # refuses to move transitive packages the lock pins. -W lets it move
           # them. graphql_compose (the module's runtime dependency) and drush
           # (a runtime dependency, whose command classes the Kernel tests
           # instantiate) come in transitively with the module require below.
-          composer require -W --no-interaction --no-progress \
+          retry composer require -W --no-interaction --no-progress \
             "drupal/graphql_compose_codegen:*@dev"
           # core-dev brings PHPUnit; pin the PHPUnit major per leg so Drupal
           # 10's ^9.6 requirement resolves. drush is pinned to ^13 for a
           # deterministic resolve across legs. paragraphs and webform are
           # test-only dependencies for the scaffolding kernel tests.
-          composer require -W --dev --no-interaction --no-progress \
+          retry composer require -W --dev --no-interaction --no-progress \
             "drupal/core-dev:${DRUPAL_CONSTRAINT}" \
             "phpunit/phpunit:${PHPUNIT_VERSION}" \
             "drush/drush:^13" \
