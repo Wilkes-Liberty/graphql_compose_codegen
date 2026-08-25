@@ -9,13 +9,30 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+## [1.1.1] — 2026-08-25
+
 ### Changed
 
-- **CI: the attribution check is now the shared workflow.**
-  `.github/workflows/attribution.yml` becomes a thin caller pinned to
-  `Wilkes-Liberty/shared-ci@v1`, and the vendored `.github/scripts/` copies are
-  removed. One implementation for every repository makes copy drift structurally
-  impossible instead of merely detectable.
+- CI now runs against the declared Drupal 10.6 and 11.3 support floors as well
+  as the current Drupal 11 release. Each job asserts the resolved core version
+  and collected test count.
+- The attribution check now calls the public `Wilkes-Liberty/shared-ci@v1`
+  workflow. Concurrent deliveries queue instead of cancelling required checks.
+- The changelog gate is self-contained and opt-in through the `changelog` label.
+  Dependabot pull requests are exempt, and the deprecated autoupdate workflow
+  has been removed.
+
+### Fixed
+
+- The public GitHub mirror no longer calls private reusable workflows for
+  Dependabot auto-merge or changelog handling. Dependabot patch and minor
+  updates retain auto-merge; major updates remain manual (issue
+  [#3614589](https://www.drupal.org/project/graphql_compose_codegen/issues/3614589)).
+- Composer network-fetching steps retry transient failures with bounded
+  backoff while preserving final dependency-resolution failures.
+- PHPStan handles PHPUnit 9's missing attribute namespace on the Drupal 10.6
+  job without failing the current-core job on an unmatched compatibility
+  ignore.
 
 ## [1.1.0] — 2026-07-25
 
