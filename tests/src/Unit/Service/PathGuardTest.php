@@ -5,13 +5,18 @@ declare(strict_types=1);
 namespace Drupal\Tests\graphql_compose_codegen\Unit\Service;
 
 use Drupal\graphql_compose_codegen\Service\PathGuard;
+use PHPUnit\Framework\Attributes\CoversMethod;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 /**
  * @coversDefaultClass \Drupal\graphql_compose_codegen\Service\PathGuard
+ * @covers \Drupal\graphql_compose_codegen\Service\PathGuard::validate
  *
  * @group graphql_compose_codegen
  */
+#[CoversMethod(PathGuard::class, 'validate')]
+#[Group('graphql_compose_codegen')]
 final class PathGuardTest extends TestCase {
 
   /**
@@ -50,35 +55,40 @@ final class PathGuardTest extends TestCase {
   }
 
   /**
-   * @covers ::validate */
+   * Tests that a path inside the project root is allowed.
+   */
   public function testAllowsPathInsideProjectRoot(): void {
     $this->guard()->validate($this->tmpRoot . '/ui');
     $this->expectNotToPerformAssertions();
   }
 
   /**
-   * @covers ::validate */
+   * Tests that absolute paths outside the project root are rejected.
+   */
   public function testRejectsAbsolutePathOutsideProjectRoot(): void {
     $this->expectException(\InvalidArgumentException::class);
     $this->guard()->validate('/etc');
   }
 
   /**
-   * @covers ::validate */
+   * Tests that paths containing parent-directory traversal are rejected.
+   */
   public function testRejectsDotDot(): void {
     $this->expectException(\InvalidArgumentException::class);
     $this->guard()->validate($this->tmpRoot . '/web/../../escape');
   }
 
   /**
-   * @covers ::validate */
+   * Tests that the filesystem root is rejected.
+   */
   public function testRejectsFilesystemRoot(): void {
     $this->expectException(\InvalidArgumentException::class);
     $this->guard()->validate('/');
   }
 
   /**
-   * @covers ::validate */
+   * Tests that arbitrary paths outside the project root are rejected.
+   */
   public function testRejectsArbitraryPathOutsideProjectRoot(): void {
     // Create a directory that is NOT in ALWAYS_REJECT and NOT under the
     // project root, to exercise the "outside project root" rejection branch.
@@ -94,7 +104,8 @@ final class PathGuardTest extends TestCase {
   }
 
   /**
-   * @covers ::validate */
+   * Tests that allowExternal bypasses the project-root check.
+   */
   public function testAllowExternalBypassesProjectRootCheck(): void {
     $external = sys_get_temp_dir() . '/gqcc-external-' . bin2hex(random_bytes(4));
     mkdir($external, 0700);
@@ -108,14 +119,16 @@ final class PathGuardTest extends TestCase {
   }
 
   /**
-   * @covers ::validate */
+   * Tests that allowExternal still rejects parent-directory traversal.
+   */
   public function testAllowExternalStillRejectsDotDot(): void {
     $this->expectException(\InvalidArgumentException::class);
     $this->guard()->validate($this->tmpRoot . '/web/../../escape', allowExternal: TRUE);
   }
 
   /**
-   * @covers ::validate */
+   * Tests that allowExternal still rejects dangerous roots.
+   */
   public function testAllowExternalStillRejectsDangerousRoots(): void {
     $this->expectException(\InvalidArgumentException::class);
     $this->guard()->validate('/etc', allowExternal: TRUE);
@@ -128,22 +141,23 @@ final class PathGuardTest extends TestCase {
    * resolves them to /private/etc etc. — which must be rejected too. The
    * literal /private paths exercise the same comparison on Linux, where
    * they fall through realpath() to lexical normalisation.
-   *
-   * @covers ::validate */
+   */
   public function testAllowExternalRejectsMacosPrivateVariants(): void {
     $this->expectException(\InvalidArgumentException::class);
     $this->guard()->validate('/private/etc', allowExternal: TRUE);
   }
 
   /**
-   * @covers ::validate */
+   * Tests that allowExternal rejects the macOS private temporary directory.
+   */
   public function testAllowExternalRejectsMacosPrivateTmp(): void {
     $this->expectException(\InvalidArgumentException::class);
     $this->guard()->validate('/private/tmp', allowExternal: TRUE);
   }
 
   /**
-   * @covers ::validate */
+   * Tests that allowExternal rejects the macOS private root.
+   */
   public function testAllowExternalRejectsPrivateItself(): void {
     $this->expectException(\InvalidArgumentException::class);
     $this->guard()->validate('/private', allowExternal: TRUE);

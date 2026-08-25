@@ -30,3 +30,12 @@ services:
     arguments:
       - '@graphql_compose_codegen.schema_inspector'
       - '@config.factory'
+
+  Drupal\graphql_compose_codegen\Hook\GraphqlComposeCodegenHooks:
+    class: Drupal\graphql_compose_codegen\Hook\GraphqlComposeCodegenHooks
+    arguments:
+      - '@logger.channel.graphql_compose_codegen'
+      - '@string_translation'
+      - '@entity_type.bundle.info'
+      - '@entity_field.manager'
+      - '@config.factory'

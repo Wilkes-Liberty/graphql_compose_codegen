@@ -15,109 +15,52 @@
 
 declare(strict_types=1);
 
+use Drupal\Core\Hook\Attribute\LegacyHook;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\field\FieldConfigInterface;
+use Drupal\graphql_compose_codegen\Hook\GraphqlComposeCodegenHooks;
 
 /**
  * Implements hook_help().
  */
+#[LegacyHook]
 function graphql_compose_codegen_help(string $route_name, RouteMatchInterface $route_match): ?string {
-  if ($route_name !== 'help.page.graphql_compose_codegen') {
-    return NULL;
-  }
-  $output = '';
-  $output .= '<h2>' . t('About') . '</h2>';
-  $output .= '<p>' . t('GraphQL Compose Codegen is a Drush-powered TypeScript and GraphQL scaffold generator for Next.js frontends driven by the GraphQL Compose module.') . '</p>';
-  $output .= '<h2>' . t('Commands') . '</h2>';
-  $output .= '<dl>';
-  $output .= '<dt><code>drush gqcc:inspect</code></dt>';
-  $output .= '<dd>' . t('List every node and paragraph bundle and its extra (non-base-type) fields.') . '</dd>';
-  $output .= '<dt><code>drush gqcc:generate</code></dt>';
-  $output .= '<dd>' . t('Write scaffold artefacts (TypeScript types, GraphQL fragments, NodeRenderer and ParagraphRenderer cases, per-bundle component stubs) to a Next.js project.') . '</dd>';
-  $output .= '<dt><code>drush gqcc:diff</code></dt>';
-  $output .= '<dd>' . t('Compare the current schema against the last generation snapshot.') . '</dd>';
-  $output .= '<dt><code>drush gqcc:validate</code></dt>';
-  $output .= '<dd>' . t('Verify that scaffold files on disk are in sync with the live schema.') . '</dd>';
-  $output .= '</dl>';
-  $output .= '<p>' . t('Configure default behaviour at <a href=":url">Configuration → Development → GraphQL Compose Codegen</a>.', [
-    ':url' => '/admin/config/development/graphql-compose-codegen',
-  ]) . '</p>';
-  return $output;
+  return \Drupal::service(GraphqlComposeCodegenHooks::class)
+    ->help($route_name, $route_match);
 }
 
 /**
  * Implements hook_entity_bundle_create().
  */
+#[LegacyHook]
 function graphql_compose_codegen_entity_bundle_create(string $entity_type_id, string $bundle): void {
-  if (!in_array($entity_type_id, ['node', 'paragraph'], TRUE)) {
-    return;
-  }
-  // --overwrite is needed because the shared types/fragments files already
-  // exist after the first generate run and would otherwise be skipped.
-  $tip = 'drush gqcc:generate --bundles=' . $bundle . ' --output-dir=/path/to/nextjs --overwrite';
-  \Drupal::logger('graphql_compose_codegen')->notice(
-    'New @type bundle "@bundle" created. Run <code>@tip</code> to scaffold TypeScript types, GraphQL fragments, and a component stub.',
-    [
-      '@type' => $entity_type_id,
-      '@bundle' => $bundle,
-      '@tip' => $tip,
-    ]
-  );
+  \Drupal::service(GraphqlComposeCodegenHooks::class)
+    ->entityBundleCreate($entity_type_id, $bundle);
 }
 
 /**
  * Implements hook_entity_bundle_delete().
  */
+#[LegacyHook]
 function graphql_compose_codegen_entity_bundle_delete(string $entity_type_id, string $bundle): void {
-  if (!in_array($entity_type_id, ['node', 'paragraph'], TRUE)) {
-    return;
-  }
-  \Drupal::logger('graphql_compose_codegen')->warning(
-    'The @type bundle "@bundle" was deleted. Manually remove the corresponding TypeScript type, the inline fragment, and the @renderer case from your Next.js project.',
-    [
-      '@type' => $entity_type_id,
-      '@bundle' => $bundle,
-      '@renderer' => $entity_type_id === 'node' ? 'NodeRenderer' : 'ParagraphRenderer',
-    ]
-  );
+  \Drupal::service(GraphqlComposeCodegenHooks::class)
+    ->entityBundleDelete($entity_type_id, $bundle);
 }
 
 /**
  * Implements hook_field_config_insert().
  */
+#[LegacyHook]
 function graphql_compose_codegen_field_config_insert(FieldConfigInterface $field_config): void {
-  $entity_type_id = $field_config->getTargetEntityTypeId();
-  if (!in_array($entity_type_id, ['node', 'paragraph'], TRUE)) {
-    return;
-  }
-  $bundle = $field_config->getTargetBundle();
-  $type = $field_config->getFieldStorageDefinition()->getType();
-  \Drupal::logger('graphql_compose_codegen')->notice(
-    'New field "@field" (@field_type) added to @entity_type bundle "@bundle". Run <code>drush gqcc:generate --bundles=@bundle --output-dir=/path/to/nextjs --overwrite</code> to update scaffolding.',
-    [
-      '@field' => $field_config->getName(),
-      '@field_type' => $type,
-      '@entity_type' => $entity_type_id,
-      '@bundle' => $bundle,
-    ]
-  );
+  \Drupal::service(GraphqlComposeCodegenHooks::class)
+    ->fieldConfigInsert($field_config);
 }
 
 /**
  * Implements hook_field_config_delete().
  */
+#[LegacyHook]
 function graphql_compose_codegen_field_config_delete(FieldConfigInterface $field_config): void {
-  $entity_type_id = $field_config->getTargetEntityTypeId();
-  if (!in_array($entity_type_id, ['node', 'paragraph'], TRUE)) {
-    return;
-  }
-  $bundle = $field_config->getTargetBundle();
-  \Drupal::logger('graphql_compose_codegen')->warning(
-    'Field "@field" removed from @entity_type bundle "@bundle". Manually remove references from TypeScript types and GraphQL fragments in your Next.js project.',
-    [
-      '@field' => $field_config->getName(),
-      '@entity_type' => $entity_type_id,
-      '@bundle' => $bundle,
-    ]
-  );
+  \Drupal::service(GraphqlComposeCodegenHooks::class)
+    ->fieldConfigDelete($field_config);
 }
