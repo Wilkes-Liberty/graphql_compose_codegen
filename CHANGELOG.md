@@ -9,6 +9,14 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+### Changed
+
+- Prepared the module's hooks, runtime requirements, and PHPUnit metadata for
+  APIs used by Drupal 12 while retaining the Drupal 10.6 compatibility bridges.
+  The declared core support range remains `^10.6 || ^11.3` until Drupal 12 can
+  be installed and exercised with the module's dependency chain (issue
+  [#3598735](https://www.drupal.org/project/graphql_compose_codegen/issues/3598735)).
+
 ## [1.1.1] — 2026-08-25
 
 ### Changed

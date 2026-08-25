@@ -9,6 +9,7 @@ use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\node\Entity\NodeType;
 use Drupal\paragraphs\Entity\ParagraphsType;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
@@ -22,6 +23,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  *
  * @group graphql_compose_codegen
  */
+#[Group('graphql_compose_codegen')]
 #[RunTestsInSeparateProcesses]
 final class SchemaChangeNoticesKernelTest extends KernelTestBase {
 

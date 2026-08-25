@@ -9,13 +9,30 @@ use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\graphql_compose_codegen\PluginManager\FieldTypeMapperManager;
 use Drupal\graphql_compose_codegen\Service\SchemaInspector;
+use PHPUnit\Framework\Attributes\CoversMethod;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 /**
  * @coversDefaultClass \Drupal\graphql_compose_codegen\Service\SchemaInspector
+ * @covers \Drupal\graphql_compose_codegen\Service\SchemaInspector::getGraphQlTypeName
+ * @covers \Drupal\graphql_compose_codegen\Service\SchemaInspector::getTsTypeName
+ * @covers \Drupal\graphql_compose_codegen\Service\SchemaInspector::getGraphQlTypeNameForParagraph
+ * @covers \Drupal\graphql_compose_codegen\Service\SchemaInspector::getTsTypeNameForParagraph
+ * @covers \Drupal\graphql_compose_codegen\Service\SchemaInspector::toGqlFieldName
+ * @covers \Drupal\graphql_compose_codegen\Service\SchemaInspector::deriveParagraphAlias
+ * @covers \Drupal\graphql_compose_codegen\Service\SchemaInspector::getComponentNameForParagraph
  *
  * @group graphql_compose_codegen
  */
+#[CoversMethod(SchemaInspector::class, 'getGraphQlTypeName')]
+#[CoversMethod(SchemaInspector::class, 'getTsTypeName')]
+#[CoversMethod(SchemaInspector::class, 'getGraphQlTypeNameForParagraph')]
+#[CoversMethod(SchemaInspector::class, 'getTsTypeNameForParagraph')]
+#[CoversMethod(SchemaInspector::class, 'toGqlFieldName')]
+#[CoversMethod(SchemaInspector::class, 'deriveParagraphAlias')]
+#[CoversMethod(SchemaInspector::class, 'getComponentNameForParagraph')]
+#[Group('graphql_compose_codegen')]
 final class SchemaInspectorTest extends TestCase {
 
   /**
@@ -34,7 +51,8 @@ final class SchemaInspectorTest extends TestCase {
   }
 
   /**
-   * @covers ::getGraphQlTypeName */
+   * Tests GraphQL type name generation.
+   */
   public function testGraphQlTypeName(): void {
     self::assertSame('NodeBasicPage', $this->inspector()->getGraphQlTypeName('basic_page'));
     self::assertSame('NodePlatform', $this->inspector()->getGraphQlTypeName('platform'));
@@ -42,26 +60,30 @@ final class SchemaInspectorTest extends TestCase {
   }
 
   /**
-   * @covers ::getTsTypeName */
+   * Tests TypeScript type name generation.
+   */
   public function testTsTypeName(): void {
     self::assertSame('DrupalBasicPage', $this->inspector()->getTsTypeName('basic_page'));
     self::assertSame('DrupalPlatform', $this->inspector()->getTsTypeName('platform'));
   }
 
   /**
-   * @covers ::getGraphQlTypeNameForParagraph */
+   * Tests paragraph GraphQL type name generation.
+   */
   public function testParagraphGraphQlName(): void {
     self::assertSame('ParagraphTwoColumn', $this->inspector()->getGraphQlTypeNameForParagraph('two_column'));
   }
 
   /**
-   * @covers ::getTsTypeNameForParagraph */
+   * Tests paragraph TypeScript type name generation.
+   */
   public function testParagraphTsName(): void {
     self::assertSame('DrupalParagraphTwoColumn', $this->inspector()->getTsTypeNameForParagraph('two_column'));
   }
 
   /**
-   * @covers ::toGqlFieldName */
+   * Tests Drupal-to-GraphQL field name conversion.
+   */
   public function testFieldNameConversion(): void {
     $i = $this->inspector();
     self::assertSame('missionImpact', $i->toGqlFieldName('field_mission_impact'));
@@ -71,7 +93,8 @@ final class SchemaInspectorTest extends TestCase {
   }
 
   /**
-   * @covers ::deriveParagraphAlias */
+   * Tests paragraph alias derivation.
+   */
   public function testParagraphAliasDerivation(): void {
     $i = $this->inspector();
     // First segment of the stripped bundle name prefixes the field name.
@@ -83,7 +106,8 @@ final class SchemaInspectorTest extends TestCase {
   }
 
   /**
-   * @covers ::deriveParagraphAlias */
+   * Tests full-bundle paragraph alias derivation.
+   */
   public function testParagraphAliasFullBundleFallback(): void {
     $i = $this->inspector();
     self::assertSame('tabGroupItems', $i->deriveParagraphAlias('p_tab_group', 'items', TRUE));
@@ -91,7 +115,8 @@ final class SchemaInspectorTest extends TestCase {
   }
 
   /**
-   * @covers ::getComponentNameForParagraph */
+   * Tests paragraph component name generation.
+   */
   public function testParagraphComponentName(): void {
     $i = $this->inspector();
     self::assertSame('FaqGroupParagraph', $i->getComponentNameForParagraph('p_faq_group'));

@@ -7,62 +7,23 @@
 
 declare(strict_types=1);
 
+use Drupal\Core\Hook\Attribute\LegacyRequirementsHook;
+use Drupal\graphql_compose_codegen\Hook\GraphqlComposeCodegenHooks;
+
 /**
  * Implements hook_requirements().
  *
  * Reported at Administration » Reports » Status report (runtime phase).
  *
- * This is the procedural hook_requirements($phase) rather than the OOP
- * hook_runtime_requirements()/#[Hook] form: those only exist on Drupal 11.1+
- * (the #[Hook] attribute) and 11.2+ (hook_runtime_requirements), so on the
- * supported 10.6 floor the check silently never ran. hook_requirements() runs
- * across the whole ^10.6 || ^11.3 support range.
+ * This is the Drupal 10 compatibility bridge. Drupal 11.3+ skips it and uses
+ * GraphqlComposeCodegenHooks::runtimeRequirements() instead.
  */
+#[LegacyRequirementsHook]
 function graphql_compose_codegen_requirements(string $phase): array {
-  $requirements = [];
-
   if ($phase !== 'runtime') {
-    return $requirements;
+    return [];
   }
 
-  /** @var \Drupal\Core\Entity\EntityTypeBundleInfoInterface $bundleInfo */
-  $bundleInfo = \Drupal::service('entity_type.bundle.info');
-  $nodeBundles = $bundleInfo->getBundleInfo('node');
-
-  if (empty($nodeBundles)) {
-    $requirements['graphql_compose_codegen_bundles'] = [
-      'title' => t('GraphQL Compose Codegen'),
-      'value' => t('No node bundles found'),
-      'description' => t('Create at least one node bundle to use graphql_compose_codegen.'),
-      'severity' => REQUIREMENT_WARNING,
-    ];
-  }
-
-  // Verify configured base_type_fields actually exist on at least one node
-  // bundle. Stale entries are non-fatal but worth flagging.
-  $config = \Drupal::config('graphql_compose_codegen.settings');
-  $configured = (array) ($config->get('base_type_fields') ?? []);
-  if (!empty($nodeBundles) && !empty($configured)) {
-    /** @var \Drupal\Core\Entity\EntityFieldManagerInterface $fieldManager */
-    $fieldManager = \Drupal::service('entity_field.manager');
-    $seen = [];
-    foreach (array_keys($nodeBundles) as $bundle) {
-      foreach (array_keys($fieldManager->getFieldDefinitions('node', $bundle)) as $name) {
-        $seen[$name] = TRUE;
-      }
-    }
-    $stale = array_values(array_diff($configured, array_keys($seen)));
-    if ($stale) {
-      $requirements['graphql_compose_codegen_stale_base_fields'] = [
-        'title' => t('GraphQL Compose Codegen — stale base type fields'),
-        'value' => t('@count stale entries', ['@count' => count($stale)]),
-        'description' => t('These fields are listed in <code>base_type_fields</code> but do not exist on any node bundle: @list', [
-          '@list' => implode(', ', $stale),
-        ]),
-        'severity' => REQUIREMENT_WARNING,
-      ];
-    }
-  }
-
-  return $requirements;
+  return \Drupal::service(GraphqlComposeCodegenHooks::class)
+    ->runtimeRequirements();
 }
