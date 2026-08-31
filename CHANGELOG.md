@@ -9,6 +9,8 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+## [1.1.2] — 2026-08-31
+
 ### Changed
 
 - Prepared the module's hooks, runtime requirements, and PHPUnit metadata for
