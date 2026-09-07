@@ -1,7 +1,7 @@
 # Contributing to GraphQL Compose Codegen
 
 Thanks for your interest. This module is maintained by a single developer
-(Jeremy Cerda), so response times will vary. Bug reports, feature requests,
+([Jeremy Cerda](https://www.drupal.org/u/jmcerda)), so response times will vary. Bug reports, feature requests,
 test coverage, and new field-type mapper plugins are all welcome.
 
 If you're new to contributing on drupal.org, the

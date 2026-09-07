@@ -7,7 +7,7 @@ When you add or remove a content type or field in Drupal, this module tells you
 what needs updating in your Next.js project and generates the boilerplate so
 you can focus on the actual component logic.
 
-Built by **Jeremy Michael Cerda** (jmcerda@wilkesliberty.com). Maintained by [Wilkes & Liberty, LLC](https://github.com/Wilkes-Liberty).
+Built by **[Jeremy Michael Cerda](https://www.drupal.org/u/jmcerda)** (jmcerda@wilkesliberty.com). Maintained by [Wilkes & Liberty, LLC](https://github.com/Wilkes-Liberty).
 
 ## Features
 
