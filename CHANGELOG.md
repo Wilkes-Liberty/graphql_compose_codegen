@@ -9,6 +9,8 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+## [1.2.0] — 2026-09-15
+
 ### Changed
 
 - Node and paragraph scaffolding now share one artefact pipeline in
@@ -21,6 +23,7 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 - Install defaults for `base_type_fields` are the generic `title` /
   `path` / `body` list (plus `NodeCommonFields`) so a fresh Article/Page
   site no longer trips the Status Report stale-field warning.
+- Maintainer author homepage now points at the drupal.org profile.
 
 ## [1.1.2] — 2026-08-31
 
