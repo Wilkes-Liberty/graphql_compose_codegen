@@ -5,22 +5,12 @@
 # (NodeCommonFields or equivalent). Adjust this list to match your project.
 
 # Fields that live in your shared base TypeScript type and should NOT be
-# repeated in per-bundle generated types.
+# repeated in per-bundle generated types. Generic node defaults only —
+# add project-specific common fields in config sync or the admin form.
 base_type_fields:
   - title
   - path
   - body
-  - field_summary
-  - field_hero_image
-  - field_social_image
-  - field_meta_description
-  - field_seo_title
-  - field_primary_cta
-  - field_secondary_cta
-  - field_breadcrumb_label
-  - field_industries
-  - field_personas
-  - field_target_sectors
 
 # Name of the shared base TypeScript type used in generated `extends` clauses.
 base_ts_type: NodeCommonFields

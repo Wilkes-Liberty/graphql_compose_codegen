@@ -67,13 +67,14 @@ base_type_fields:
   - body
   - field_summary
   # ... add any project-specific common fields
+  # (field_hero_image, field_primary_cta, field_industries, …)
 base_ts_type: NodeCommonFields
 output_dir: '../ui'   # relative to Drupal root — or use an absolute path
 ```
 
 | Key | Default | Description |
 |-----|---------|-------------|
-| `base_type_fields` | `[title, path, body, field_summary, …]` | Fields in your shared base TypeScript type. Excluded from per-bundle output. |
+| `base_type_fields` | `[title, path, body]` | Fields in your shared base TypeScript type. Excluded from per-bundle output. Fresh Article/Page sites ship only these plus `NodeCommonFields`. |
 | `base_ts_type` | `NodeCommonFields` | Name of the shared base TS type. |
 | `output_dir` | _(empty)_ | Default output directory. Can be overridden with `--output-dir`. |
 
