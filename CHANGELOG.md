@@ -9,6 +9,19 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+### Changed
+
+- Node and paragraph scaffolding now share one artefact pipeline in
+  `TypeScriptGenerator` and `SchemaInspector`. Paragraph response-key
+  aliasing and one-level nesting remain the only special case.
+- Node bundles and fields now honor graphql_compose `entity_config` /
+  `field_config` enablement the same way paragraphs already did
+  (`enabled` + `query_load_enabled`). Sites without graphql_compose
+  config still list every bundle and field.
+- Install defaults for `base_type_fields` are the generic `title` /
+  `path` / `body` list (plus `NodeCommonFields`) so a fresh Article/Page
+  site no longer trips the Status Report stale-field warning.
+
 ## [1.1.2] — 2026-08-31
 
 ### Changed

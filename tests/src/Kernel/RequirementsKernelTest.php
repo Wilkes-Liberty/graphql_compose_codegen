@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Drupal\Tests\graphql_compose_codegen\Kernel;
 
 use Drupal\Core\Extension\Requirement\RequirementSeverity;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\NodeType;
 use PHPUnit\Framework\Attributes\Group;
@@ -34,7 +36,10 @@ final class RequirementsKernelTest extends KernelTestBase {
     'system',
     'user',
     'field',
+    'filter',
     'text',
+    'path',
+    'path_alias',
     'node',
     'graphql_compose_codegen',
   ];
@@ -46,8 +51,9 @@ final class RequirementsKernelTest extends KernelTestBase {
     parent::setUp();
     $this->installEntitySchema('node');
     $this->installEntitySchema('user');
+    $this->installEntitySchema('path_alias');
     $this->installSchema('node', ['node_access']);
-    $this->installConfig(['node', 'graphql_compose_codegen']);
+    $this->installConfig(['node', 'filter', 'graphql_compose_codegen']);
     \Drupal::moduleHandler()->loadInclude('graphql_compose_codegen', 'install');
   }
 
@@ -78,6 +84,27 @@ final class RequirementsKernelTest extends KernelTestBase {
     $this->assertWarningSeverity(
       $requirements['graphql_compose_codegen_stale_base_fields']['severity'],
     );
+  }
+
+  /**
+   * Install defaults are not stale on an Article-like bundle.
+   */
+  public function testDefaultBaseTypeFieldsAreKnownOnArticleLikeBundle(): void {
+    NodeType::create(['type' => 'article', 'name' => 'Article'])->save();
+    FieldStorageConfig::create([
+      'field_name' => 'body',
+      'entity_type' => 'node',
+      'type' => 'text_with_summary',
+    ])->save();
+    FieldConfig::create([
+      'field_name' => 'body',
+      'entity_type' => 'node',
+      'bundle' => 'article',
+    ])->save();
+
+    $requirements = $this->runtimeRequirements();
+    $this->assertArrayNotHasKey('graphql_compose_codegen_bundles', $requirements);
+    $this->assertArrayNotHasKey('graphql_compose_codegen_stale_base_fields', $requirements);
   }
 
   /**

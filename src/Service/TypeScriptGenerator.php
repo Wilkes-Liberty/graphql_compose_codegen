@@ -53,25 +53,17 @@ BANNER;
   public function buildArtefacts(array $bundles = [], array $skipFields = []): array {
     $artefacts = [];
 
-    $nodeBundles = $this->inspector->getBundles($bundles);
-    if ($nodeBundles) {
-      $artefacts['types.generated.d.ts'] = $this->generateTypeDefinitions($bundles, $skipFields);
-      $artefacts['fragments.generated.ts'] = $this->generateFragments($bundles, $skipFields);
-      $artefacts['node-renderer-cases.generated.tsx'] = $this->generateRendererCases($bundles);
-      foreach (array_keys($nodeBundles) as $bundle) {
-        $component = str_replace('Drupal', '', $this->inspector->getTsTypeName($bundle));
-        $artefacts["components/{$component}.generated.tsx"] = $this->generateComponentStub($bundle);
+    foreach ($this->artefactSpecs() as $spec) {
+      $bundleInfo = $this->bundlesFor($spec, $bundles);
+      if (!$bundleInfo) {
+        continue;
       }
-    }
-
-    $paragraphBundles = $this->inspector->getParagraphBundles($bundles);
-    if ($paragraphBundles) {
-      $artefacts['paragraphs/types.generated.d.ts'] = $this->generateParagraphTypeDefinitions($bundles, $skipFields);
-      $artefacts['paragraphs/fragments.generated.ts'] = $this->generateParagraphFragments($bundles, $skipFields);
-      $artefacts['paragraphs/paragraph-renderer-cases.generated.tsx'] = $this->generateParagraphRendererCases($bundles);
-      foreach (array_keys($paragraphBundles) as $bundle) {
-        $component = $this->inspector->getComponentNameForParagraph($bundle);
-        $artefacts["paragraphs/components/{$component}.generated.tsx"] = $this->generateParagraphComponentStub($bundle);
+      $artefacts[$spec['types_file']] = $this->generateTypesFor($spec, $bundles, $skipFields);
+      $artefacts[$spec['fragments_file']] = $this->generateFragmentsFor($spec, $bundles, $skipFields);
+      $artefacts[$spec['renderer_file']] = $this->generateRendererFor($spec, $bundles);
+      foreach (array_keys($bundleInfo) as $bundle) {
+        $component = $this->componentName($spec, $bundle);
+        $artefacts[$spec['component_dir'] . $component . '.generated.tsx'] = $this->generateStubFor($spec, $bundle);
       }
     }
 
@@ -90,55 +82,7 @@ BANNER;
    *   Concatenated TypeScript snippet for merging into types/index.d.ts.
    */
   public function generateTypeDefinitions(array $bundles = [], array $skipFields = []): string {
-    $config = $this->configFactory->get('graphql_compose_codegen.settings');
-    $baseType = (string) ($config->get('base_ts_type') ?? 'NodeCommonFields');
-
-    $lines = [self::FILE_BANNER, ''];
-    $lines[] = '// ── Merge the following into types/index.d.ts ──────────────────────────────';
-    $lines[] = '';
-
-    $bundleInfo = $this->inspector->getBundles($bundles);
-    $fieldLists = [];
-
-    foreach ($bundleInfo as $bundle => $info) {
-      $tsType = $this->inspector->getTsTypeName($bundle);
-      $gqlType = $this->inspector->getGraphQlTypeName($bundle);
-      $fields = $this->inspector->getFieldsForBundle($bundle, $skipFields);
-      $fieldLists[] = $fields;
-      $label = (string) ($info['label'] ?? $bundle);
-
-      $lines[] = "// {$label}";
-      $lines[] = "export type {$tsType} = {$baseType} & {";
-      $lines[] = "  __typename: \"{$gqlType}\"";
-
-      foreach ($fields as $field) {
-        $opt = $field['required'] ? '' : '?';
-        $nullable = $field['required'] ? '' : ' | null';
-        $lines[] = "  // Drupal: {$field['name']} ({$field['drupal_type']})";
-        $lines[] = "  {$field['gql_name']}{$opt}: {$field['ts_type']}{$nullable}";
-      }
-
-      $lines[] = '}';
-      $lines[] = '';
-    }
-
-    $unionMembers = array_map(
-      fn(string $b) => $this->inspector->getTsTypeName($b),
-      array_keys($bundleInfo)
-    );
-    $lines[] = '// ── Extend DrupalNode union ─────────────────────────────────────────────────';
-    $lines[] = '//';
-    $lines[] = '// export type DrupalNode =';
-    foreach ($unionMembers as $member) {
-      $lines[] = "//   | {$member}";
-    }
-    $lines[] = '//   | ... (existing union members)';
-
-    foreach ($this->getWebformHelperTypeLines($fieldLists) as $helperLine) {
-      $lines[] = $helperLine;
-    }
-
-    return implode("\n", $lines);
+    return $this->generateTypesFor($this->artefactSpecs()['node'], $bundles, $skipFields);
   }
 
   /**
@@ -153,29 +97,7 @@ BANNER;
    *   Concatenated fragment text for merging into a node-by-path query.
    */
   public function generateFragments(array $bundles = [], array $skipFields = []): string {
-    $lines = [self::FILE_BANNER, ''];
-    $lines[] = '// ── Merge the following into lib/queries/node-by-path.ts ─────────────────────';
-    $lines[] = '// Inside the NODE_BY_PATH_QUERY template literal, add each block to the';
-    $lines[] = '// NodeUnion spread (after the existing `... on NodePlatform { ... }` blocks).';
-    $lines[] = '';
-
-    $bundleInfo = $this->inspector->getBundles($bundles);
-    foreach ($bundleInfo as $bundle => $info) {
-      $gqlType = $this->inspector->getGraphQlTypeName($bundle);
-      $label = (string) ($info['label'] ?? $bundle);
-      $fields = $this->inspector->getFieldsForBundle($bundle, $skipFields);
-
-      $lines[] = "// {$label}";
-      $lines[] = "... on {$gqlType} {";
-      $lines[] = '  ${COMMON_NODE_FIELDS}';
-      foreach ($fields as $field) {
-        $lines[] = "  " . $this->getGqlSelector($field);
-      }
-      $lines[] = '}';
-      $lines[] = '';
-    }
-
-    return implode("\n", $lines);
+    return $this->generateFragmentsFor($this->artefactSpecs()['node'], $bundles, $skipFields);
   }
 
   /**
@@ -188,41 +110,7 @@ BANNER;
    *   Commented-out import + case statements for hand-merging.
    */
   public function generateRendererCases(array $bundles = []): string {
-    $lines = [self::FILE_BANNER, ''];
-    $lines[] = '// ── Add these cases to components/drupal/NodeRenderer.tsx ────────────────────';
-    $lines[] = '// 1. Import each new component at the top of NodeRenderer.tsx.';
-    $lines[] = '// 2. Add the import { ... } lines below.';
-    $lines[] = '// 3. Add each case inside the switch(node.__typename) block.';
-    $lines[] = '';
-
-    $bundleInfo = $this->inspector->getBundles($bundles);
-    $imports = [];
-    $cases = [];
-
-    foreach ($bundleInfo as $bundle => $info) {
-      $tsType = $this->inspector->getTsTypeName($bundle);
-      $gqlType = $this->inspector->getGraphQlTypeName($bundle);
-      $component = str_replace('Drupal', '', $tsType);
-      $label = (string) ($info['label'] ?? $bundle);
-
-      $imports[] = "import { {$component} } from \"@/components/drupal/{$component}\"";
-      $cases[] = "      // {$label}";
-      $cases[] = "      case \"{$gqlType}\":";
-      $cases[] = "        return <{$component} node={node as {$tsType}} />";
-      $cases[] = '';
-    }
-
-    $lines[] = '// Imports:';
-    foreach ($imports as $i) {
-      $lines[] = "// {$i}";
-    }
-    $lines[] = '';
-    $lines[] = '// Cases (inside switch(node.__typename)):';
-    foreach ($cases as $c) {
-      $lines[] = "// {$c}";
-    }
-
-    return implode("\n", $lines);
+    return $this->generateRendererFor($this->artefactSpecs()['node'], $bundles);
   }
 
   /**
@@ -235,12 +123,7 @@ BANNER;
    *   TSX content suitable for writing to a .generated.tsx file.
    */
   public function generateComponentStub(string $bundle): string {
-    $tsType = $this->inspector->getTsTypeName($bundle);
-    $gqlType = $this->inspector->getGraphQlTypeName($bundle);
-    $component = str_replace('Drupal', '', $tsType);
-    $label = str_replace('_', ' ', ucwords($bundle, '_'));
-    $fields = $this->inspector->getFieldsForBundle($bundle);
-    return $this->buildComponent($component, $tsType, $gqlType, $label, $fields);
+    return $this->generateStubFor($this->artefactSpecs()['node'], $bundle);
   }
 
   /**
@@ -256,55 +139,7 @@ BANNER;
    *   Returns an explanatory comment when no paragraph bundles exist.
    */
   public function generateParagraphTypeDefinitions(array $bundles = [], array $skipFields = []): string {
-    $lines = [self::FILE_BANNER, ''];
-    $lines[] = '// ── Merge the following into types/index.d.ts (paragraph section) ───────────';
-    $lines[] = '';
-
-    $bundleInfo = $this->inspector->getParagraphBundles($bundles);
-    $map = $this->inspector->getParagraphFieldMap($bundles, $skipFields);
-    if (!$map) {
-      $lines[] = '// (No paragraph bundles found — paragraphs module may not be installed.)';
-      return implode("\n", $lines);
-    }
-
-    foreach ($map as $bundle => $entry) {
-      $tsType = $this->inspector->getTsTypeNameForParagraph($bundle);
-      $gqlType = $this->inspector->getGraphQlTypeNameForParagraph($bundle);
-      $label = (string) ($bundleInfo[$bundle]['label'] ?? $bundle);
-
-      $lines[] = "// {$label}";
-      $lines[] = "export type {$tsType} = {";
-      $lines[] = "  __typename: \"{$gqlType}\"";
-      foreach ($entry['fields'] as $field) {
-        $opt = $field['required'] ? '' : '?';
-        $nullable = $field['required'] ? '' : ' | null';
-        $lines[] = "  // Drupal: {$field['name']} ({$field['drupal_type']})";
-        $lines[] = "  {$field['response_key']}{$opt}: {$field['ts_type']}{$nullable}";
-      }
-      $lines[] = '}';
-      $lines[] = '';
-    }
-
-    $unionMembers = array_map(
-      fn(string $b) => $this->inspector->getTsTypeNameForParagraph($b),
-      array_keys($map)
-    );
-    $lines[] = '// ── DrupalParagraph union ──────────────────────────────────────────────────';
-    $lines[] = 'export type DrupalParagraph =';
-    foreach ($unionMembers as $i => $member) {
-      $sep = $i === array_key_last($unionMembers) ? ';' : '';
-      $lines[] = "  | {$member}{$sep}";
-    }
-
-    $fieldLists = array_map(
-      fn(array $entry) => $entry['fields'],
-      array_values($map)
-    );
-    foreach ($this->getWebformHelperTypeLines($fieldLists) as $helperLine) {
-      $lines[] = $helperLine;
-    }
-
-    return implode("\n", $lines);
+    return $this->generateTypesFor($this->artefactSpecs()['paragraph'], $bundles, $skipFields);
   }
 
   /**
@@ -320,35 +155,342 @@ BANNER;
    *   literal in a node-by-path query.
    */
   public function generateParagraphFragments(array $bundles = [], array $skipFields = []): string {
-    $lines = [self::FILE_BANNER, ''];
-    $lines[] = '// ── Paragraph fragments (use as PARAGRAPH_FRAGMENTS template literal) ──────';
-    $lines[] = '';
+    return $this->generateFragmentsFor($this->artefactSpecs()['paragraph'], $bundles, $skipFields);
+  }
 
-    $bundleInfo = $this->inspector->getParagraphBundles($bundles);
-    // The full map is needed even when generating a subset: nested child
-    // selections are built from the child bundle's own field list.
-    $fullMap = $this->inspector->getParagraphFieldMap([], $skipFields);
-    $map = $bundles ? array_intersect_key($fullMap, array_flip($bundles)) : $fullMap;
-    if (!$map) {
-      $lines[] = '// (No paragraph bundles found — paragraphs module may not be installed.)';
+  /**
+   * Generates switch-case stubs for a Next.js ParagraphRenderer component.
+   *
+   * @param string[] $bundles
+   *   Optional list of paragraph bundle IDs. Empty means all bundles.
+   *
+   * @return string
+   *   Commented-out import + case statements for hand-merging.
+   */
+  public function generateParagraphRendererCases(array $bundles = []): string {
+    return $this->generateRendererFor($this->artefactSpecs()['paragraph'], $bundles);
+  }
+
+  /**
+   * Returns the generate-time spec for each scaffolded entity type.
+   *
+   * @return array<string, array<string, mixed>>
+   *   Specs keyed by entity type ID.
+   */
+  private function artefactSpecs(): array {
+    $empty = '// (No paragraph bundles found — paragraphs module may not be installed.)';
+    return [
+      'node' => [
+        'id' => 'node',
+        'types_file' => 'types.generated.d.ts',
+        'fragments_file' => 'fragments.generated.ts',
+        'renderer_file' => 'node-renderer-cases.generated.tsx',
+        'component_dir' => 'components/',
+        'types_banner' => '// ── Merge the following into types/index.d.ts ──────────────────────────────',
+        'extends_base' => TRUE,
+        'field_key' => 'gql_name',
+        'empty_comment' => NULL,
+        'union_mode' => 'commented_extend',
+        'union_banner' => '// ── Extend DrupalNode union ─────────────────────────────────────────────────',
+        'union_name' => 'DrupalNode',
+        'fragments_banners' => [
+          '// ── Merge the following into lib/queries/node-by-path.ts ─────────────────────',
+          '// Inside the NODE_BY_PATH_QUERY template literal, add each block to the',
+          '// NodeUnion spread (after the existing `... on NodePlatform { ... }` blocks).',
+        ],
+        'fragment_common_line' => '  ${COMMON_NODE_FIELDS}',
+        'skip_child_only' => FALSE,
+        'renderer_banners' => [
+          '// ── Add these cases to components/drupal/NodeRenderer.tsx ────────────────────',
+          '// 1. Import each new component at the top of NodeRenderer.tsx.',
+          '// 2. Add the import { ... } lines below.',
+          '// 3. Add each case inside the switch(node.__typename) block.',
+        ],
+        'renderer_switch' => 'node.__typename',
+        'renderer_import' => '@/components/drupal/',
+        'renderer_prop' => 'node',
+        'renderer_source' => 'node',
+      ],
+      'paragraph' => [
+        'id' => 'paragraph',
+        'types_file' => 'paragraphs/types.generated.d.ts',
+        'fragments_file' => 'paragraphs/fragments.generated.ts',
+        'renderer_file' => 'paragraphs/paragraph-renderer-cases.generated.tsx',
+        'component_dir' => 'paragraphs/components/',
+        'types_banner' => '// ── Merge the following into types/index.d.ts (paragraph section) ───────────',
+        'extends_base' => FALSE,
+        'field_key' => 'response_key',
+        'empty_comment' => $empty,
+        'union_mode' => 'export',
+        'union_banner' => '// ── DrupalParagraph union ──────────────────────────────────────────────────',
+        'union_name' => 'DrupalParagraph',
+        'fragments_banners' => [
+          '// ── Paragraph fragments (use as PARAGRAPH_FRAGMENTS template literal) ──────',
+        ],
+        'fragment_common_line' => '  __typename',
+        'skip_child_only' => TRUE,
+        'renderer_banners' => [
+          '// ── Add these cases to components/drupal/paragraphs/ParagraphRenderer.tsx ──',
+          '// 1. Import each new component at the top of ParagraphRenderer.tsx.',
+          '// 2. Add the import { ... } lines below.',
+          '// 3. Add each case inside the switch(paragraph.__typename) block.',
+        ],
+        'renderer_switch' => 'paragraph.__typename',
+        'renderer_import' => './',
+        'renderer_prop' => 'data',
+        'renderer_source' => 'paragraph',
+      ],
+    ];
+  }
+
+  /**
+   * Returns matching bundles for one artefact spec.
+   *
+   * @param array<string, mixed> $spec
+   *   An artefact spec from artefactSpecs().
+   * @param string[] $only
+   *   Optional bundle ID filter.
+   *
+   * @return array<string, mixed>
+   *   Bundle info keyed by machine name.
+   */
+  private function bundlesFor(array $spec, array $only): array {
+    return $spec['id'] === 'paragraph'
+      ? $this->inspector->getParagraphBundles($only)
+      : $this->inspector->getBundles($only);
+  }
+
+  /**
+   * Returns the GraphQL type name for a bundle under one spec.
+   *
+   * @param array<string, mixed> $spec
+   *   An artefact spec.
+   * @param string $bundle
+   *   The bundle machine name.
+   *
+   * @return string
+   *   The GraphQL type name.
+   */
+  private function gqlName(array $spec, string $bundle): string {
+    return $spec['id'] === 'paragraph'
+      ? $this->inspector->getGraphQlTypeNameForParagraph($bundle)
+      : $this->inspector->getGraphQlTypeName($bundle);
+  }
+
+  /**
+   * Returns the TypeScript type name for a bundle under one spec.
+   *
+   * @param array<string, mixed> $spec
+   *   An artefact spec.
+   * @param string $bundle
+   *   The bundle machine name.
+   *
+   * @return string
+   *   The TypeScript type name.
+   */
+  private function tsName(array $spec, string $bundle): string {
+    return $spec['id'] === 'paragraph'
+      ? $this->inspector->getTsTypeNameForParagraph($bundle)
+      : $this->inspector->getTsTypeName($bundle);
+  }
+
+  /**
+   * Returns the React component name for a bundle under one spec.
+   *
+   * @param array<string, mixed> $spec
+   *   An artefact spec.
+   * @param string $bundle
+   *   The bundle machine name.
+   *
+   * @return string
+   *   The component name.
+   */
+  private function componentName(array $spec, string $bundle): string {
+    return $spec['id'] === 'paragraph'
+      ? $this->inspector->getComponentNameForParagraph($bundle)
+      : str_replace('Drupal', '', $this->inspector->getTsTypeName($bundle));
+  }
+
+  /**
+   * Builds per-bundle type entries (label, fields, child_only) for a spec.
+   *
+   * @param array<string, mixed> $spec
+   *   An artefact spec.
+   * @param string[] $bundles
+   *   Optional bundle ID filter.
+   * @param string[] $skipFields
+   *   Extra field names to exclude.
+   *
+   * @return array<string, array{label: string, fields: array<string, mixed>, child_only: bool}>
+   *   Entries keyed by bundle machine name.
+   */
+  private function typeEntries(array $spec, array $bundles, array $skipFields): array {
+    $bundleInfo = $this->bundlesFor($spec, $bundles);
+    $entries = [];
+    if ($spec['id'] === 'paragraph') {
+      foreach ($this->inspector->getParagraphFieldMap($bundles, $skipFields) as $bundle => $entry) {
+        $entries[$bundle] = [
+          'label' => (string) ($bundleInfo[$bundle]['label'] ?? $bundle),
+          'fields' => $entry['fields'],
+          'child_only' => $entry['child_only'],
+        ];
+      }
+      return $entries;
+    }
+    foreach ($bundleInfo as $bundle => $info) {
+      $entries[$bundle] = [
+        'label' => (string) ($info['label'] ?? $bundle),
+        'fields' => $this->inspector->getFieldsForBundle($bundle, $skipFields),
+        'child_only' => FALSE,
+      ];
+    }
+    return $entries;
+  }
+
+  /**
+   * Generates type definitions for one entity-type spec.
+   *
+   * @param array<string, mixed> $spec
+   *   An artefact spec.
+   * @param string[] $bundles
+   *   Optional bundle ID filter.
+   * @param string[] $skipFields
+   *   Extra field names to exclude.
+   *
+   * @return string
+   *   The types artefact content.
+   */
+  private function generateTypesFor(array $spec, array $bundles, array $skipFields): string {
+    $lines = [self::FILE_BANNER, '', $spec['types_banner'], ''];
+    $entries = $this->typeEntries($spec, $bundles, $skipFields);
+    if ($spec['empty_comment'] !== NULL && !$entries) {
+      $lines[] = $spec['empty_comment'];
       return implode("\n", $lines);
     }
 
+    $baseType = NULL;
+    if ($spec['extends_base']) {
+      $config = $this->configFactory->get('graphql_compose_codegen.settings');
+      $baseType = (string) ($config->get('base_ts_type') ?? 'NodeCommonFields');
+    }
+
+    $fieldLists = [];
+    foreach ($entries as $bundle => $entry) {
+      $tsType = $this->tsName($spec, $bundle);
+      $gqlType = $this->gqlName($spec, $bundle);
+      $fields = $entry['fields'];
+      $fieldLists[] = $fields;
+
+      $extends = $baseType !== NULL ? "{$baseType} & " : '';
+      $lines[] = "// {$entry['label']}";
+      $lines[] = "export type {$tsType} = {$extends}{";
+      $lines[] = "  __typename: \"{$gqlType}\"";
+      foreach ($fields as $field) {
+        $opt = $field['required'] ? '' : '?';
+        $nullable = $field['required'] ? '' : ' | null';
+        $key = $field[$spec['field_key']];
+        $lines[] = "  // Drupal: {$field['name']} ({$field['drupal_type']})";
+        $lines[] = "  {$key}{$opt}: {$field['ts_type']}{$nullable}";
+      }
+      $lines[] = '}';
+      $lines[] = '';
+    }
+
+    $unionMembers = [];
+    foreach (array_keys($entries) as $bundle) {
+      $unionMembers[] = $this->tsName($spec, $bundle);
+    }
+
+    $lines[] = $spec['union_banner'];
+    if ($spec['union_mode'] === 'commented_extend') {
+      $lines[] = '//';
+      $lines[] = "// export type {$spec['union_name']} =";
+      foreach ($unionMembers as $member) {
+        $lines[] = "//   | {$member}";
+      }
+      $lines[] = '//   | ... (existing union members)';
+    }
+    else {
+      $lines[] = "export type {$spec['union_name']} =";
+      foreach ($unionMembers as $i => $member) {
+        $sep = $i === array_key_last($unionMembers) ? ';' : '';
+        $lines[] = "  | {$member}{$sep}";
+      }
+    }
+
+    foreach ($this->getWebformHelperTypeLines($fieldLists) as $helperLine) {
+      $lines[] = $helperLine;
+    }
+
+    return implode("\n", $lines);
+  }
+
+  /**
+   * Generates GraphQL fragments for one entity-type spec.
+   *
+   * Paragraph response-key aliasing and one-level nesting are the only
+   * special case: aliases are computed across every enabled bundle, and
+   * nested references expand via getParagraphSelectorLines().
+   *
+   * @param array<string, mixed> $spec
+   *   An artefact spec.
+   * @param string[] $bundles
+   *   Optional bundle ID filter.
+   * @param string[] $skipFields
+   *   Extra field names to exclude.
+   *
+   * @return string
+   *   The fragments artefact content.
+   */
+  private function generateFragmentsFor(array $spec, array $bundles, array $skipFields): string {
+    $lines = [self::FILE_BANNER, ''];
+    foreach ($spec['fragments_banners'] as $banner) {
+      $lines[] = $banner;
+    }
+    $lines[] = '';
+
+    $fullMap = [];
+    if ($spec['id'] === 'paragraph') {
+      // Full map even for a subset: nested child selections come from the
+      // child bundle's own field list, and aliases stay globally stable.
+      $fullMap = $this->inspector->getParagraphFieldMap([], $skipFields);
+      $map = $bundles ? array_intersect_key($fullMap, array_flip($bundles)) : $fullMap;
+      if (!$map) {
+        $lines[] = $spec['empty_comment'];
+        return implode("\n", $lines);
+      }
+      $bundleInfo = $this->inspector->getParagraphBundles($bundles);
+      $entries = [];
+      foreach ($map as $bundle => $entry) {
+        $entries[$bundle] = [
+          'label' => (string) ($bundleInfo[$bundle]['label'] ?? $bundle),
+          'fields' => $entry['fields'],
+          'child_only' => $entry['child_only'],
+        ];
+      }
+    }
+    else {
+      $entries = $this->typeEntries($spec, $bundles, $skipFields);
+    }
+
     $childOnly = [];
-    foreach ($map as $bundle => $entry) {
-      $gqlType = $this->inspector->getGraphQlTypeNameForParagraph($bundle);
-      if ($entry['child_only']) {
+    foreach ($entries as $bundle => $entry) {
+      $gqlType = $this->gqlName($spec, $bundle);
+      if ($spec['skip_child_only'] && $entry['child_only']) {
         $childOnly[] = $gqlType;
         continue;
       }
-      $label = (string) ($bundleInfo[$bundle]['label'] ?? $bundle);
-
-      $lines[] = "// {$label}";
+      $lines[] = "// {$entry['label']}";
       $lines[] = "... on {$gqlType} {";
-      $lines[] = '  __typename';
+      $lines[] = $spec['fragment_common_line'];
       foreach ($entry['fields'] as $field) {
-        foreach ($this->getParagraphSelectorLines($field, $fullMap) as $selectorLine) {
-          $lines[] = $selectorLine;
+        if ($spec['id'] === 'paragraph') {
+          foreach ($this->getParagraphSelectorLines($field, $fullMap) as $selectorLine) {
+            $lines[] = $selectorLine;
+          }
+        }
+        else {
+          $lines[] = '  ' . $this->getGqlSelector($field);
         }
       }
       $lines[] = '}';
@@ -364,57 +506,55 @@ BANNER;
   }
 
   /**
-   * Generates switch-case stubs for a Next.js ParagraphRenderer component.
+   * Generates renderer switch-case stubs for one entity-type spec.
    *
+   * @param array<string, mixed> $spec
+   *   An artefact spec.
    * @param string[] $bundles
-   *   Optional list of paragraph bundle IDs. Empty means all bundles.
+   *   Optional bundle ID filter.
    *
    * @return string
-   *   Commented-out import + case statements for hand-merging.
+   *   The renderer-cases artefact content.
    */
-  public function generateParagraphRendererCases(array $bundles = []): string {
+  private function generateRendererFor(array $spec, array $bundles): string {
     $lines = [self::FILE_BANNER, ''];
-    $lines[] = '// ── Add these cases to components/drupal/paragraphs/ParagraphRenderer.tsx ──';
-    $lines[] = '// 1. Import each new component at the top of ParagraphRenderer.tsx.';
-    $lines[] = '// 2. Add the import { ... } lines below.';
-    $lines[] = '// 3. Add each case inside the switch(paragraph.__typename) block.';
+    foreach ($spec['renderer_banners'] as $banner) {
+      $lines[] = $banner;
+    }
     $lines[] = '';
 
-    $bundleInfo = $this->inspector->getParagraphBundles($bundles);
-    $map = $this->inspector->getParagraphFieldMap($bundles);
-    if (!$map) {
-      $lines[] = '// (No paragraph bundles found — paragraphs module may not be installed.)';
+    $entries = $this->typeEntries($spec, $bundles, []);
+    if ($spec['empty_comment'] !== NULL && !$entries) {
+      $lines[] = $spec['empty_comment'];
       return implode("\n", $lines);
     }
 
     $imports = [];
     $cases = [];
     $childOnly = [];
-    foreach ($map as $bundle => $entry) {
-      $gqlType = $this->inspector->getGraphQlTypeNameForParagraph($bundle);
-      if ($entry['child_only']) {
+    foreach ($entries as $bundle => $entry) {
+      $gqlType = $this->gqlName($spec, $bundle);
+      if ($spec['skip_child_only'] && $entry['child_only']) {
         $childOnly[] = $gqlType;
         continue;
       }
-      $tsType = $this->inspector->getTsTypeNameForParagraph($bundle);
-      $component = $this->inspector->getComponentNameForParagraph($bundle);
-      $label = (string) ($bundleInfo[$bundle]['label'] ?? $bundle);
-
-      $imports[] = "import { {$component} } from \"./{$component}\"";
-      $cases[] = "      // {$label}";
+      $tsType = $this->tsName($spec, $bundle);
+      $component = $this->componentName($spec, $bundle);
+      $imports[] = "import { {$component} } from \"{$spec['renderer_import']}{$component}\"";
+      $cases[] = "      // {$entry['label']}";
       $cases[] = "      case \"{$gqlType}\":";
-      $cases[] = "        return <{$component} data={paragraph as {$tsType}} />";
+      $cases[] = "        return <{$component} {$spec['renderer_prop']}={{$spec['renderer_source']} as {$tsType}} />";
       $cases[] = '';
     }
 
     $lines[] = '// Imports:';
-    foreach ($imports as $i) {
-      $lines[] = "// {$i}";
+    foreach ($imports as $import) {
+      $lines[] = "// {$import}";
     }
     $lines[] = '';
-    $lines[] = '// Cases (inside switch(paragraph.__typename)):';
-    foreach ($cases as $c) {
-      $lines[] = "// {$c}";
+    $lines[] = "// Cases (inside switch({$spec['renderer_switch']})):";
+    foreach ($cases as $case) {
+      $lines[] = "// {$case}";
     }
     if ($childOnly) {
       $lines[] = '// Nested-only bundles render through their parents and need no case:';
@@ -422,6 +562,39 @@ BANNER;
     }
 
     return implode("\n", $lines);
+  }
+
+  /**
+   * Generates a React component stub for one bundle under a spec.
+   *
+   * @param array<string, mixed> $spec
+   *   An artefact spec.
+   * @param string $bundle
+   *   The bundle machine name.
+   *
+   * @return string
+   *   The component stub content.
+   */
+  private function generateStubFor(array $spec, string $bundle): string {
+    $tsType = $this->tsName($spec, $bundle);
+    $gqlType = $this->gqlName($spec, $bundle);
+    $component = $this->componentName($spec, $bundle);
+    $label = str_replace('_', ' ', ucwords($bundle, '_'));
+    if ($spec['id'] === 'paragraph') {
+      $map = $this->inspector->getParagraphFieldMap([$bundle]);
+      $fields = $map[$bundle]['fields'] ?? [];
+    }
+    else {
+      $fields = $this->inspector->getFieldsForBundle($bundle);
+    }
+    return $this->buildComponent(
+      $component,
+      $tsType,
+      $gqlType,
+      $label,
+      $fields,
+      $spec['id'] === 'paragraph',
+    );
   }
 
   /**
@@ -477,13 +650,7 @@ BANNER;
    *   TSX content suitable for writing to a .generated.tsx file.
    */
   public function generateParagraphComponentStub(string $bundle): string {
-    $tsType = $this->inspector->getTsTypeNameForParagraph($bundle);
-    $gqlType = $this->inspector->getGraphQlTypeNameForParagraph($bundle);
-    $component = $this->inspector->getComponentNameForParagraph($bundle);
-    $label = str_replace('_', ' ', ucwords($bundle, '_'));
-    $map = $this->inspector->getParagraphFieldMap([$bundle]);
-    $fields = $map[$bundle]['fields'] ?? [];
-    return $this->buildComponent($component, $tsType, $gqlType, $label, $fields, TRUE);
+    return $this->generateStubFor($this->artefactSpecs()['paragraph'], $bundle);
   }
 
   /**
