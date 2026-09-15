@@ -91,16 +91,21 @@ final class RequirementsKernelTest extends KernelTestBase {
    */
   public function testDefaultBaseTypeFieldsAreKnownOnArticleLikeBundle(): void {
     NodeType::create(['type' => 'article', 'name' => 'Article'])->save();
-    FieldStorageConfig::create([
-      'field_name' => 'body',
-      'entity_type' => 'node',
-      'type' => 'text_with_summary',
-    ])->save();
-    FieldConfig::create([
-      'field_name' => 'body',
-      'entity_type' => 'node',
-      'bundle' => 'article',
-    ])->save();
+    // Drupal 10's node install config may already ship node.body storage.
+    if (!FieldStorageConfig::loadByName('node', 'body')) {
+      FieldStorageConfig::create([
+        'field_name' => 'body',
+        'entity_type' => 'node',
+        'type' => 'text_with_summary',
+      ])->save();
+    }
+    if (!FieldConfig::loadByName('node', 'article', 'body')) {
+      FieldConfig::create([
+        'field_name' => 'body',
+        'entity_type' => 'node',
+        'bundle' => 'article',
+      ])->save();
+    }
 
     $requirements = $this->runtimeRequirements();
     $this->assertArrayNotHasKey('graphql_compose_codegen_bundles', $requirements);
