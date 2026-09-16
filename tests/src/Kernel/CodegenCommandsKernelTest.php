@@ -12,7 +12,7 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * Kernel test verifying generator output for a real bundle.
+ * Kernel tests for generator output and gqcc:generate snapshot honesty.
  *
  * @group graphql_compose_codegen
  *
@@ -87,6 +87,72 @@ final class CodegenCommandsKernelTest extends KernelTestBase {
     self::assertStringContainsString('... on NodeDemo {', $out);
     self::assertStringContainsString('${COMMON_NODE_FIELDS}', $out);
     self::assertStringContainsString('tagline', $out);
+  }
+
+  /**
+   * Tests that a skipped write must snapshot disk, not the desired set.
+   *
+   * When emitFiles() leaves existing files untouched, recording the desired
+   * hashes makes gqcc:diff go green against stale scaffold.
+   */
+  public function testSkippedWriteSnapshotMustReflectDisk(): void {
+    /** @var \Drupal\graphql_compose_codegen\Service\TypeScriptGenerator $gen */
+    $gen = $this->container->get('graphql_compose_codegen.typescript_generator');
+    /** @var \Drupal\graphql_compose_codegen\Service\ArtefactSnapshot $snapshot */
+    $snapshot = $this->container->get('graphql_compose_codegen.artefact_snapshot');
+    $artefacts = $gen->buildArtefacts(['demo']);
+    self::assertNotEmpty($artefacts);
+
+    $siteDir = $this->siteDirectory;
+    if (!str_starts_with($siteDir, '/')) {
+      $siteDir = DRUPAL_ROOT . '/' . $siteDir;
+    }
+    $genDir = $siteDir . '/gqcc-ui/generated';
+
+    foreach (array_keys($artefacts) as $rel) {
+      $abs = $genDir . '/' . $rel;
+      $dir = dirname($abs);
+      if (!is_dir($dir) && !mkdir($dir, 0777, TRUE) && !is_dir($dir)) {
+        self::fail("Could not create {$dir}");
+      }
+      file_put_contents($abs, "stale scaffold\n");
+    }
+
+    // The old generate() path: snapshot the desired set after a no-op write.
+    $snapshot->record($artefacts);
+    $lie = $snapshot->diff($artefacts);
+    self::assertSame([], $lie['added']);
+    self::assertSame([], $lie['removed']);
+    self::assertSame(
+      [],
+      $lie['changed'],
+      'Recording the desired set hides skipped writes from diff.',
+    );
+
+    // generate() now records on-disk content instead.
+    $snapshot->recordFromDisk($genDir, $artefacts);
+    $stored = $snapshot->load();
+    self::assertIsArray($stored);
+
+    foreach (array_keys($artefacts) as $rel) {
+      self::assertSame(
+        sha1('stale scaffold'),
+        $stored['hashes'][$rel] ?? NULL,
+        "Snapshot for {$rel} must hash the stale on-disk file.",
+      );
+      self::assertNotSame(
+        sha1($artefacts[$rel]),
+        $stored['hashes'][$rel] ?? NULL,
+        "Snapshot for {$rel} must not hash the desired (unwritten) set.",
+      );
+    }
+
+    $diff = $snapshot->diff($artefacts);
+    self::assertNotSame(
+      [],
+      $diff['changed'],
+      'Diff must not go green when generate skipped writes.',
+    );
   }
 
 }

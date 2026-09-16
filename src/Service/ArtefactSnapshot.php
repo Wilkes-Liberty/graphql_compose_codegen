@@ -46,6 +46,35 @@ final class ArtefactSnapshot {
   }
 
   /**
+   * Records hashes of artefact files that actually exist on disk.
+   *
+   * Missing paths are omitted. One trailing newline is stripped so hashes
+   * match generator content (emitFiles appends "\n" on write).
+   *
+   * @param string $genDir
+   *   Absolute directory containing generated files.
+   * @param array<string, string> $artefacts
+   *   Desired relative path → file content. Only keys are read from disk.
+   */
+  public function recordFromDisk(string $genDir, array $artefacts): void {
+    $landed = [];
+    foreach (array_keys($artefacts) as $rel) {
+      $abs = $genDir . '/' . $rel;
+      if (!is_file($abs)) {
+        continue;
+      }
+      $onDisk = file_get_contents($abs);
+      if ($onDisk === FALSE) {
+        continue;
+      }
+      $landed[$rel] = str_ends_with($onDisk, "\n")
+        ? substr($onDisk, 0, -1)
+        : $onDisk;
+    }
+    $this->record($landed);
+  }
+
+  /**
    * Returns the last snapshot, or NULL if none recorded.
    *
    * @return array{recorded_at: int, hashes: array<string, string>}|null

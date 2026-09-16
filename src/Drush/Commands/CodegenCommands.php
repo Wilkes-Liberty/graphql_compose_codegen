@@ -178,7 +178,9 @@ final class CodegenCommands extends DrushCommands {
     else {
       $this->emitFiles($artefacts, $outputDir . '/generated', $overwrite, $dryRun);
       if (!$dryRun) {
-        $this->snapshot->record($artefacts);
+        // Hash what is on disk, not the desired set: emitFiles() skips
+        // existing paths when --overwrite is off (and failed writes).
+        $this->snapshot->recordFromDisk($outputDir . '/generated', $artefacts);
       }
     }
 
