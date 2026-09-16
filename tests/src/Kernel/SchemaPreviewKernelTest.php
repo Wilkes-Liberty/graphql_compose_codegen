@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\graphql_compose_codegen\Kernel;
 
+use Drupal\Core\Entity\EntityFieldManagerInterface;
+use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
@@ -136,6 +138,25 @@ final class SchemaPreviewKernelTest extends KernelTestBase {
       self::assertSame('Schema result exceeds the preview response limit.', $exception->getMessage());
       self::assertNull($snapshot->load());
     }
+  }
+
+  /**
+   * Excessive field definitions are rejected before mapping or generation.
+   */
+  public function testFieldBudgetRejectsOversizedBundles(): void {
+    $fields = $this->createMock(EntityFieldManagerInterface::class);
+    $fields->expects(self::once())->method('getFieldDefinitions')
+      ->with('node', 'demo')
+      ->willReturn(array_fill(0, SchemaPreview::MAX_FIELDS_PER_BUNDLE + 1, BaseFieldDefinition::create('string')));
+    $preview = new SchemaPreview(
+      $this->container->get('graphql_compose_codegen.schema_inspector'),
+      $this->container->get('graphql_compose_codegen.typescript_generator'),
+      $this->container->get('graphql_compose_codegen.artefact_snapshot'),
+      $fields,
+    );
+    $this->expectException(\LengthException::class);
+    $this->expectExceptionMessage('Schema exceeds the preview field limit.');
+    $preview->run('inspect', ['demo']);
   }
 
 }
