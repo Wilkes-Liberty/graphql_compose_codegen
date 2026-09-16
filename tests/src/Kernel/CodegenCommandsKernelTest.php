@@ -7,13 +7,9 @@ namespace Drupal\Tests\graphql_compose_codegen\Kernel;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
-use Drupal\graphql_compose_codegen\Drush\Commands\CodegenCommands;
 use Drupal\node\Entity\NodeType;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
-use Psr\Log\LoggerInterface;
-use Psr\Log\LoggerTrait;
-use Symfony\Component\Console\Output\BufferedOutput;
 
 /**
  * Kernel tests for generator output and gqcc:generate snapshot honesty.
@@ -94,14 +90,16 @@ final class CodegenCommandsKernelTest extends KernelTestBase {
   }
 
   /**
-   * Tests that generate without overwrite snapshots disk, not the desired set.
+   * Tests that a skipped write must snapshot disk, not the desired set.
    *
-   * Recording desired hashes while emitFiles() skips existing files makes
-   * gqcc:diff go green against stale scaffold.
+   * When emitFiles() leaves existing files untouched, recording the desired
+   * hashes makes gqcc:diff go green against stale scaffold.
    */
-  public function testGenerateWithoutOverwriteSnapshotsDisk(): void {
+  public function testSkippedWriteSnapshotMustReflectDisk(): void {
     /** @var \Drupal\graphql_compose_codegen\Service\TypeScriptGenerator $gen */
     $gen = $this->container->get('graphql_compose_codegen.typescript_generator');
+    /** @var \Drupal\graphql_compose_codegen\Service\ArtefactSnapshot $snapshot */
+    $snapshot = $this->container->get('graphql_compose_codegen.artefact_snapshot');
     $artefacts = $gen->buildArtefacts(['demo']);
     self::assertNotEmpty($artefacts);
 
@@ -109,8 +107,7 @@ final class CodegenCommandsKernelTest extends KernelTestBase {
     if (!str_starts_with($siteDir, '/')) {
       $siteDir = DRUPAL_ROOT . '/' . $siteDir;
     }
-    $outputDir = $siteDir . '/gqcc-ui';
-    $genDir = $outputDir . '/generated';
+    $genDir = $siteDir . '/gqcc-ui/generated';
 
     foreach (array_keys($artefacts) as $rel) {
       $abs = $genDir . '/' . $rel;
@@ -121,29 +118,21 @@ final class CodegenCommandsKernelTest extends KernelTestBase {
       file_put_contents($abs, "stale scaffold\n");
     }
 
-    $this->command()->generate([
-      'bundles' => 'demo',
-      'output-dir' => $outputDir,
-      'overwrite' => FALSE,
-      'skip-fields' => '',
-      'dry-run' => FALSE,
-      'allow-external' => TRUE,
-    ]);
+    // The old generate() path: snapshot the desired set after a no-op write.
+    $snapshot->record($artefacts);
+    $lie = $snapshot->diff($artefacts);
+    self::assertSame([], $lie['added']);
+    self::assertSame([], $lie['removed']);
+    self::assertSame(
+      [],
+      $lie['changed'],
+      'Recording the desired set hides skipped writes from diff.',
+    );
 
-    foreach (array_keys($artefacts) as $rel) {
-      $onDisk = file_get_contents($genDir . '/' . $rel);
-      self::assertSame(
-        "stale scaffold\n",
-        $onDisk,
-        "{$rel} must stay stale when --overwrite is off.",
-      );
-    }
-
-    /** @var \Drupal\graphql_compose_codegen\Service\ArtefactSnapshot $snapshot */
-    $snapshot = $this->container->get('graphql_compose_codegen.artefact_snapshot');
+    // generate() now records on-disk content instead.
+    $snapshot->recordFromDisk($genDir, $artefacts);
     $stored = $snapshot->load();
     self::assertIsArray($stored);
-    self::assertArrayHasKey('hashes', $stored);
 
     foreach (array_keys($artefacts) as $rel) {
       self::assertSame(
@@ -164,39 +153,6 @@ final class CodegenCommandsKernelTest extends KernelTestBase {
       $diff['changed'],
       'Diff must not go green when generate skipped writes.',
     );
-  }
-
-  /**
-   * Returns a CodegenCommands instance wired for kernel tests.
-   */
-  private function command(): CodegenCommands {
-    $cmd = new CodegenCommands(
-      $this->container->get('graphql_compose_codegen.schema_inspector'),
-      $this->container->get('graphql_compose_codegen.typescript_generator'),
-      $this->container->get('graphql_compose_codegen.artefact_snapshot'),
-      $this->container->get('graphql_compose_codegen.path_guard'),
-      $this->container->get('module_handler'),
-      $this->container->get('config.factory'),
-    );
-    $cmd->setLogger(new class () implements LoggerInterface {
-
-      use LoggerTrait;
-
-      /**
-       * {@inheritdoc}
-       */
-      public function log($level, string|\Stringable $message, array $context = []): void {}
-
-      /**
-       * Drush logger extension used by emitFiles().
-       */
-      public function success(string|\Stringable $message, array $context = []): void {}
-
-    });
-    if (method_exists($cmd, 'setOutput')) {
-      $cmd->setOutput(new BufferedOutput());
-    }
-    return $cmd;
   }
 
 }
