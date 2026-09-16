@@ -9,6 +9,13 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+### Added
+
+- Optional Codegen MCP submodule with governed Tool API inspection, snapshot
+  comparison, and read-only scaffold previews. Calls share the existing
+  generator, enforce finite schema and response limits, and recheck access on
+  direct execution. ([#3623814](https://www.drupal.org/project/graphql_compose_codegen/issues/3623814))
+
 ## [1.2.1] — 2026-09-16
 
 ### Fixed

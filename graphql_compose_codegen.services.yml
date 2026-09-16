@@ -39,3 +39,11 @@ services:
       - '@entity_type.bundle.info'
       - '@entity_field.manager'
       - '@config.factory'
+
+  graphql_compose_codegen.schema_preview:
+    class: Drupal\graphql_compose_codegen\Service\SchemaPreview
+    arguments:
+      - '@graphql_compose_codegen.schema_inspector'
+      - '@graphql_compose_codegen.typescript_generator'
+      - '@graphql_compose_codegen.artefact_snapshot'
+      - '@entity_field.manager'

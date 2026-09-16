@@ -155,7 +155,9 @@ jobs:
             "phpunit/phpunit:${PHPUNIT_VERSION}" \
             "drush/drush:^13" \
             "drupal/paragraphs:^1.15" \
-            "drupal/webform:^6.3@RC"
+            "drupal/webform:^6.3@RC" \
+            "drupal/mcp_sentinel:^2.21.1" \
+            "drupal/tool:^1.0.0-beta8"
 
       - name: Assert the versions actually under test
         working-directory: drupal
@@ -211,10 +213,17 @@ jobs:
               "${PWD}/web/modules/contrib/graphql_compose_codegen/tests/src/${suite}"
           done
 
+          vendor/bin/phpunit -c "${config}" \
+            --log-junit "${PWD}/junit-Mcp.xml" \
+            "${PWD}/web/modules/contrib/graphql_compose_codegen/modules/graphql_compose_codegen_mcp/tests/src/Kernel"
+
+          mcp_total="$(grep -o '<testcase ' junit-Mcp.xml | wc -l | tr -d ' ')"
+          test "${mcp_total}" -ge 2 || { echo "::error::Optional MCP tests were not collected"; exit 1; }
+
           # Assert the *count*, not just the exit status. An exit code only
           # says the tests that ran passed; it cannot say which ran. JUnit XML
           # is used because its shape is stable across 9.6 and 11.
-          total="$(grep -ho '<testcase ' junit-Unit.xml junit-Kernel.xml | wc -l | tr -d ' ')"
+          total="$(grep -ho '<testcase ' junit-Unit.xml junit-Kernel.xml junit-Mcp.xml | wc -l | tr -d ' ')"
           echo "Collected ${total} tests (floor ${MIN_TESTS})."
           if [ "${total}" -lt "${MIN_TESTS}" ]; then
             echo "::error::Collected only ${total} tests, below the floor of ${MIN_TESTS}. A directory was likely dropped, not fixed — a passing run on a partial suite is a false green. Investigate before lowering this floor."

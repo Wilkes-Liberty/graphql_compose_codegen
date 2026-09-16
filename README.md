@@ -199,6 +199,13 @@ graphql_compose_codegen/
         └── PathGuard.php
 ```
 
+## MCP schema tools
+
+The optional [Codegen MCP submodule](modules/graphql_compose_codegen_mcp/README.md)
+provides schema inspection, snapshot comparison, and scaffold previews through
+Tool API. MCP Sentinel governs access. Previews never write files or update the
+saved baseline; the base module has no new runtime dependencies.
+
 ## Extending the field-type mapper
 
 Other modules can register custom mappers via the attribute-based plugin

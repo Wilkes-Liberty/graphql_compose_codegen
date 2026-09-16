@@ -35,11 +35,14 @@
     "require-dev": {
         "drupal/core-dev": "^10.6 || ^11.3",
         "drupal/paragraphs": "^1.15",
-        "drupal/webform": "^6.3@RC"
+        "drupal/webform": "^6.3@RC",
+        "drupal/mcp_sentinel": "^2.21.1",
+        "drupal/tool": "^1.0.0-beta8"
     },
     "suggest": {
         "drupal/scheduler": "Exposes publish_on / unpublish_on fields that gqcc:inspect will type-map automatically.",
         "drupal/paragraphs": "Enables paragraph-bundle introspection and fragment generation.",
-        "drupal/webform": "With graphql_compose_webform, webform reference fields scaffold a full DrupalWebform selection."
+        "drupal/webform": "With graphql_compose_webform, webform reference fields scaffold a full DrupalWebform selection.",
+        "drupal/mcp_sentinel": "Enable graphql_compose_codegen_mcp for governed Tool API schema inspection and read-only previews."
     }
 }
