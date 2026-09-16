@@ -9,6 +9,8 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+## [1.2.1] — 2026-09-16
+
 ### Fixed
 
 - `gqcc:generate` snapshots hashes of files that actually landed on disk,
