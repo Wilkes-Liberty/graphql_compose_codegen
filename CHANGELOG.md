@@ -9,6 +9,12 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+### Fixed
+
+- `gqcc:generate` snapshots hashes of files that actually landed on disk,
+  so a no-op write (existing files, `--overwrite` off) cannot make
+  `gqcc:diff` go green against stale scaffold.
+
 ## [1.2.0] — 2026-09-15
 
 ### Changed
