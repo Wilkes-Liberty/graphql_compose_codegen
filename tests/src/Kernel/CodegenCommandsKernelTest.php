@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\graphql_compose_codegen\Kernel;
 
-use Drupal\graphql_compose_codegen\Drush\Commands\CodegenCommands;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\graphql_compose_codegen\Drush\Commands\CodegenCommands;
 use Drupal\node\Entity\NodeType;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
