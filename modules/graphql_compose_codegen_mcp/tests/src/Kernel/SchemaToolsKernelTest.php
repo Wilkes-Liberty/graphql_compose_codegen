@@ -94,4 +94,16 @@ final class SchemaToolsKernelTest extends KernelTestBase {
     self::assertFalse($tool->getResultStatus());
   }
 
+  /**
+   * Invalid inputs return a failure without echoing caller values.
+   */
+  public function testInvalidSelectorsDoNotLeakIntoFailures(): void {
+    $tool = $this->container->get('plugin.manager.tool')->createInstance('graphql_compose_codegen_preview');
+    $tool->setInputValue('bundles', ['not-a-machine-name']);
+    $tool->execute();
+    self::assertFalse($tool->getResultStatus());
+    self::assertStringNotContainsString('not-a-machine-name', (string) $tool->getResultMessage());
+    self::assertEmpty($tool->getResult()->getContextValues());
+  }
+
 }

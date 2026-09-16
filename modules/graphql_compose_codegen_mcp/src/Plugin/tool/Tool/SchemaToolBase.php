@@ -85,6 +85,12 @@ abstract class SchemaToolBase extends McpGovernedToolBase implements ConfigScope
       return ExecutableResult::success($this->t('Schema operation completed.'), $result);
     }
     catch (\Throwable $exception) {
+      // Record diagnostics without schema values or exception messages.
+      $this->logger->warning('Codegen tool failed with @type at @source:@line.', [
+        '@type' => get_class($exception),
+        '@source' => basename($exception->getFile()),
+        '@line' => $exception->getLine(),
+      ]);
       // Do not relay mapper errors, schema values, or filesystem paths.
       return ExecutableResult::failure($this->t('Schema operation refused. Check selectors and schema limits.'));
     }
