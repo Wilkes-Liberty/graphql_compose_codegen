@@ -1,7 +1,7 @@
 # Governed schema tools
 
 This optional module exposes Codegen through Tool API. The base Codegen module
-continues to work without Sentinel or Tool API. Install MCP Sentinel 2.21.1 or
+continues to work without Sentinel or Tool API. Install MCP Sentinel 2.22.0 or
 later, then enable `graphql_compose_codegen_mcp`.
 
 ## Contract
@@ -31,6 +31,7 @@ Require both `access mcp sentinel context` and
 `administer graphql_compose_codegen`, an eligible Sentinel policy with config
 read enabled, and the exact OAuth scope `mcp_config_read`. Sentinel's source
 readiness, audit wiring, IP restrictions, rate budget, and DLP checks apply.
+Discovery evaluates the same source policy without fabricated tool inputs.
 Direct PHP execution repeats the access check. Anonymous execution is refused.
 
 If a policy denies any configuration dependency family (`graphql_compose*`,

@@ -63,12 +63,14 @@ final class SchemaToolsKernelTest extends KernelTestBase {
     foreach (['inspect', 'diff', 'preview'] as $operation) {
       $this->container->get('current_user')->setAccount($account);
       $tool = $this->container->get('plugin.manager.tool')->createInstance('graphql_compose_codegen_' . $operation);
+      self::assertTrue($tool->discoveryAccess($account)->isAllowed());
       $tool->setInputValue('bundles', ['demo']);
       self::assertTrue($tool->access());
       $tool->execute();
       self::assertTrue($tool->getResultStatus(), (string) $tool->getResultMessage());
       self::assertNotEmpty($tool->getResult()->getContextValues());
       $this->container->get('current_user')->setAccount(new AnonymousUserSession());
+      self::assertFalse($tool->discoveryAccess(new AnonymousUserSession())->isAllowed());
       self::assertFalse($tool->access());
       $tool->execute();
       self::assertFalse($tool->getResultStatus());
@@ -83,12 +85,14 @@ final class SchemaToolsKernelTest extends KernelTestBase {
     $tool = $this->container->get('plugin.manager.tool')->createInstance('graphql_compose_codegen_preview');
     $tool->setInputValue('bundles', ['demo']);
     $this->config('mcp_sentinel.settings')->set('audit_enabled', FALSE)->save();
+    self::assertFalse($tool->discoveryAccess($this->container->get('current_user'))->isAllowed());
     self::assertFalse($tool->access());
     $tool->execute();
     self::assertFalse($tool->getResultStatus());
     $this->config('mcp_sentinel.settings')->set('audit_enabled', TRUE)->save();
     $this->config('mcp_sentinel.mcp_policy_profile.default')->set('denied_config_types', ['field.field.node.demo'])->save();
     $this->container->get('entity_type.manager')->getStorage('mcp_policy_profile')->resetCache();
+    self::assertFalse($tool->discoveryAccess($this->container->get('current_user'))->isAllowed());
     self::assertFalse($tool->access());
     $tool->execute();
     self::assertFalse($tool->getResultStatus());
