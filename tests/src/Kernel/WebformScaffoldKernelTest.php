@@ -80,8 +80,10 @@ final class WebformScaffoldKernelTest extends KernelTestBase {
    * Fragments select the shape graphql_compose_webform exposes.
    */
   public function testWebformFragmentSelection(): void {
-    $fragments = $this->container->get('graphql_compose_codegen.typescript_generator')
-      ->generateParagraphFragments();
+    $artefacts = $this->container->get('graphql_compose_codegen.typescript_generator')
+      ->buildArtefacts();
+    self::assertArrayHasKey('paragraphs/fragments.generated.ts', $artefacts);
+    $fragments = $artefacts['paragraphs/fragments.generated.ts'];
 
     self::assertStringContainsString(
       'webform { id label description elements { webform_key type title required placeholder description options { id value } } }',
@@ -94,8 +96,10 @@ final class WebformScaffoldKernelTest extends KernelTestBase {
    * Type definitions use DrupalWebform and ship its helper types once.
    */
   public function testWebformTypeDefinitions(): void {
-    $types = $this->container->get('graphql_compose_codegen.typescript_generator')
-      ->generateParagraphTypeDefinitions();
+    $artefacts = $this->container->get('graphql_compose_codegen.typescript_generator')
+      ->buildArtefacts();
+    self::assertArrayHasKey('paragraphs/types.generated.d.ts', $artefacts);
+    $types = $artefacts['paragraphs/types.generated.d.ts'];
 
     // Required field: no `?`, no `| null`.
     self::assertStringContainsString("\n  webform: DrupalWebform\n", $types);

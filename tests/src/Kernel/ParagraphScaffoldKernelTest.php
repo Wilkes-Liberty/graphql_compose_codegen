@@ -242,7 +242,9 @@ final class ParagraphScaffoldKernelTest extends KernelTestBase {
    * Fragments alias colliding keys and nest child bundles one level deep.
    */
   public function testParagraphFragmentsAliasAndNest(): void {
-    $fragments = $this->generator()->generateParagraphFragments();
+    $artefacts = $this->generator()->buildArtefacts();
+    self::assertArrayHasKey('paragraphs/fragments.generated.ts', $artefacts);
+    $fragments = $artefacts['paragraphs/fragments.generated.ts'];
 
     self::assertStringContainsString('... on ParagraphPFaqGroup {', $fragments);
     self::assertStringContainsString('... on ParagraphPTabGroup {', $fragments);
@@ -271,7 +273,9 @@ final class ParagraphScaffoldKernelTest extends KernelTestBase {
    * Type definitions use the aliased property names and nested item types.
    */
   public function testParagraphTypesFollowAliases(): void {
-    $types = $this->generator()->generateParagraphTypeDefinitions();
+    $artefacts = $this->generator()->buildArtefacts();
+    self::assertArrayHasKey('paragraphs/types.generated.d.ts', $artefacts);
+    $types = $artefacts['paragraphs/types.generated.d.ts'];
 
     self::assertStringContainsString('export type DrupalParagraphPFaqGroup = {', $types);
     self::assertStringContainsString('items?: DrupalParagraphPFaqItem[] | null', $types);
@@ -297,7 +301,9 @@ final class ParagraphScaffoldKernelTest extends KernelTestBase {
    * Renderer cases target ParagraphRenderer.tsx and skip nested-only bundles.
    */
   public function testParagraphRendererCases(): void {
-    $cases = $this->generator()->generateParagraphRendererCases();
+    $artefacts = $this->generator()->buildArtefacts();
+    self::assertArrayHasKey('paragraphs/paragraph-renderer-cases.generated.tsx', $artefacts);
+    $cases = $artefacts['paragraphs/paragraph-renderer-cases.generated.tsx'];
 
     self::assertStringContainsString('ParagraphRenderer.tsx', $cases);
     self::assertStringContainsString('import { FaqGroupParagraph } from "./FaqGroupParagraph"', $cases);
@@ -350,7 +356,9 @@ final class ParagraphScaffoldKernelTest extends KernelTestBase {
    * Paragraph component stubs use the data prop and component naming.
    */
   public function testParagraphComponentStubUsesDataProp(): void {
-    $stub = $this->generator()->generateParagraphComponentStub('p_faq_group');
+    $artefacts = $this->generator()->buildArtefacts(['p_faq_group']);
+    self::assertArrayHasKey('paragraphs/components/FaqGroupParagraph.generated.tsx', $artefacts);
+    $stub = $artefacts['paragraphs/components/FaqGroupParagraph.generated.tsx'];
 
     self::assertStringContainsString(
       'export function FaqGroupParagraph({ data }: { data: DrupalParagraphPFaqGroup })',

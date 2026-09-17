@@ -71,107 +71,6 @@ BANNER;
   }
 
   /**
-   * Generates TypeScript type definitions for node bundles.
-   *
-   * @param string[] $bundles
-   *   Optional list of node bundle IDs. Empty means all bundles.
-   * @param string[] $skipFields
-   *   Additional field names to exclude.
-   *
-   * @return string
-   *   Concatenated TypeScript snippet for merging into types/index.d.ts.
-   */
-  public function generateTypeDefinitions(array $bundles = [], array $skipFields = []): string {
-    return $this->generateTypesFor($this->artefactSpecs()['node'], $bundles, $skipFields);
-  }
-
-  /**
-   * Generates GraphQL inline fragments for node bundles.
-   *
-   * @param string[] $bundles
-   *   Optional list of node bundle IDs. Empty means all bundles.
-   * @param string[] $skipFields
-   *   Additional field names to exclude.
-   *
-   * @return string
-   *   Concatenated fragment text for merging into a node-by-path query.
-   */
-  public function generateFragments(array $bundles = [], array $skipFields = []): string {
-    return $this->generateFragmentsFor($this->artefactSpecs()['node'], $bundles, $skipFields);
-  }
-
-  /**
-   * Generates switch-case stubs for a Next.js NodeRenderer component.
-   *
-   * @param string[] $bundles
-   *   Optional list of node bundle IDs. Empty means all bundles.
-   *
-   * @return string
-   *   Commented-out import + case statements for hand-merging.
-   */
-  public function generateRendererCases(array $bundles = []): string {
-    return $this->generateRendererFor($this->artefactSpecs()['node'], $bundles);
-  }
-
-  /**
-   * Generates a React component stub for a single node bundle.
-   *
-   * @param string $bundle
-   *   Node bundle machine name.
-   *
-   * @return string
-   *   TSX content suitable for writing to a .generated.tsx file.
-   */
-  public function generateComponentStub(string $bundle): string {
-    return $this->generateStubFor($this->artefactSpecs()['node'], $bundle);
-  }
-
-  /**
-   * Generates TypeScript type definitions for paragraph bundles.
-   *
-   * @param string[] $bundles
-   *   Optional list of paragraph bundle IDs. Empty means all bundles.
-   * @param string[] $skipFields
-   *   Additional field names to exclude.
-   *
-   * @return string
-   *   Concatenated TypeScript snippet for the paragraph section of types/.
-   *   Returns an explanatory comment when no paragraph bundles exist.
-   */
-  public function generateParagraphTypeDefinitions(array $bundles = [], array $skipFields = []): string {
-    return $this->generateTypesFor($this->artefactSpecs()['paragraph'], $bundles, $skipFields);
-  }
-
-  /**
-   * Generates GraphQL fragments for paragraph bundles.
-   *
-   * @param string[] $bundles
-   *   Optional list of paragraph bundle IDs. Empty means all bundles.
-   * @param string[] $skipFields
-   *   Additional field names to exclude.
-   *
-   * @return string
-   *   Concatenated fragment text for use as the PARAGRAPH_FRAGMENTS template
-   *   literal in a node-by-path query.
-   */
-  public function generateParagraphFragments(array $bundles = [], array $skipFields = []): string {
-    return $this->generateFragmentsFor($this->artefactSpecs()['paragraph'], $bundles, $skipFields);
-  }
-
-  /**
-   * Generates switch-case stubs for a Next.js ParagraphRenderer component.
-   *
-   * @param string[] $bundles
-   *   Optional list of paragraph bundle IDs. Empty means all bundles.
-   *
-   * @return string
-   *   Commented-out import + case statements for hand-merging.
-   */
-  public function generateParagraphRendererCases(array $bundles = []): string {
-    return $this->generateRendererFor($this->artefactSpecs()['paragraph'], $bundles);
-  }
-
-  /**
    * Returns the generate-time spec for each scaffolded entity type.
    *
    * @return array<string, array<string, mixed>>
@@ -638,19 +537,6 @@ BANNER;
     }
     $lines[] = '  }';
     return $lines;
-  }
-
-  /**
-   * Generates a React component stub for a single paragraph bundle.
-   *
-   * @param string $bundle
-   *   Paragraph bundle machine name.
-   *
-   * @return string
-   *   TSX content suitable for writing to a .generated.tsx file.
-   */
-  public function generateParagraphComponentStub(string $bundle): string {
-    return $this->generateStubFor($this->artefactSpecs()['paragraph'], $bundle);
   }
 
   /**
