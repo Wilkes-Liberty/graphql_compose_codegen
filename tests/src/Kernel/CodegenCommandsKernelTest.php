@@ -69,7 +69,9 @@ final class CodegenCommandsKernelTest extends KernelTestBase {
   public function testTypeDefinitionsIncludeBundleFields(): void {
     /** @var \Drupal\graphql_compose_codegen\Service\TypeScriptGenerator $gen */
     $gen = $this->container->get('graphql_compose_codegen.typescript_generator');
-    $out = $gen->generateTypeDefinitions();
+    $artefacts = $gen->buildArtefacts();
+    self::assertArrayHasKey('types.generated.d.ts', $artefacts);
+    $out = $artefacts['types.generated.d.ts'];
 
     self::assertStringContainsString('export type DrupalDemo', $out);
     self::assertStringContainsString('__typename: "NodeDemo"', $out);
@@ -82,7 +84,9 @@ final class CodegenCommandsKernelTest extends KernelTestBase {
   public function testFragmentsIncludeBundleSpread(): void {
     /** @var \Drupal\graphql_compose_codegen\Service\TypeScriptGenerator $gen */
     $gen = $this->container->get('graphql_compose_codegen.typescript_generator');
-    $out = $gen->generateFragments();
+    $artefacts = $gen->buildArtefacts();
+    self::assertArrayHasKey('fragments.generated.ts', $artefacts);
+    $out = $artefacts['fragments.generated.ts'];
 
     self::assertStringContainsString('... on NodeDemo {', $out);
     self::assertStringContainsString('${COMMON_NODE_FIELDS}', $out);
