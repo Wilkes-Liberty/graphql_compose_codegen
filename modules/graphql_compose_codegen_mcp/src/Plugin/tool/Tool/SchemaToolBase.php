@@ -40,6 +40,13 @@ abstract class SchemaToolBase extends McpGovernedToolBase implements ConfigScope
   /**
    * {@inheritdoc}
    */
+  protected function checkGovernedDiscoveryAccess(AccountInterface $account): AccessResultInterface {
+    return $this->checkGovernedAccess([], $account);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   protected function checkGovernedAccess(array $values, AccountInterface $account): AccessResultInterface {
     $access = AccessResult::allowedIfHasPermission($account, 'administer graphql_compose_codegen');
     $profile = $this->governancePolicyResolver?->resolve($account);
