@@ -28,6 +28,8 @@ variables:
     drupal/graphql_compose:^2.1
     drupal/paragraphs:^1.15
     drupal/webform:^6.3@RC
+    drupal/mcp_sentinel:^2.21.1
+    drupal/tool:^1.0.0-beta8
 
   # This module declares `^10.6 || ^11.3`, but the default phpunit job runs
   # against current core only — so neither floor was ever exercised and the green
