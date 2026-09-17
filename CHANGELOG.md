@@ -9,6 +9,8 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+## [1.3.0] — 2026-09-16
+
 ### Added
 
 - Optional Codegen MCP submodule with governed Tool API inspection, snapshot
