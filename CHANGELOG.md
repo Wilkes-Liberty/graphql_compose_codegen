@@ -9,6 +9,8 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+## [1.4.0] — 2026-09-18
+
 ### Changed
 
 - `TypeScriptGenerator` public API is `buildArtefacts()` only. The per-artefact
