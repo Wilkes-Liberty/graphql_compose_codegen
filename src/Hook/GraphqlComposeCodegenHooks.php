@@ -11,11 +11,9 @@ use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Extension\Requirement\RequirementSeverity;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Routing\RouteMatchInterface;
-use Drupal\Core\State\StateInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\field\FieldConfigInterface;
-use Drupal\graphql_compose_codegen\Service\ArtefactSnapshot;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -38,8 +36,6 @@ final class GraphqlComposeCodegenHooks {
    *   The entity field manager.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
    *   The configuration factory.
-   * @param \Drupal\Core\State\StateInterface $state
-   *   The state service.
    */
   public function __construct(
     private readonly LoggerInterface $logger,
@@ -47,20 +43,8 @@ final class GraphqlComposeCodegenHooks {
     private readonly EntityTypeBundleInfoInterface $entityTypeBundleInfo,
     private readonly EntityFieldManagerInterface $entityFieldManager,
     private readonly ConfigFactoryInterface $configFactory,
-    private readonly StateInterface $state,
   ) {
     $this->setStringTranslation($string_translation);
-  }
-
-  /**
-   * Implements hook_uninstall().
-   *
-   * Config is removed on uninstall; State is not. Leftover snapshot hashes
-   * would make gqcc:diff inherit the previous enablement.
-   */
-  #[Hook('uninstall')]
-  public function uninstall(): void {
-    $this->state->delete(ArtefactSnapshot::STATE_KEY);
   }
 
   /**

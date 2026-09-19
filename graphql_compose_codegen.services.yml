@@ -39,7 +39,6 @@ services:
       - '@entity_type.bundle.info'
       - '@entity_field.manager'
       - '@config.factory'
-      - '@state'
 
   graphql_compose_codegen.schema_preview:
     class: Drupal\graphql_compose_codegen\Service\SchemaPreview
