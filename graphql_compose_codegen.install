@@ -7,6 +7,7 @@
 
 declare(strict_types=1);
 
+use Drupal\Core\Hook\Attribute\LegacyHook;
 use Drupal\Core\Hook\Attribute\LegacyRequirementsHook;
 use Drupal\graphql_compose_codegen\Hook\GraphqlComposeCodegenHooks;
 
@@ -26,4 +27,15 @@ function graphql_compose_codegen_requirements(string $phase): array {
 
   return \Drupal::service(GraphqlComposeCodegenHooks::class)
     ->runtimeRequirements();
+}
+
+/**
+ * Implements hook_uninstall().
+ *
+ * This is the Drupal 10 compatibility bridge. Drupal 11+ skips it and uses
+ * GraphqlComposeCodegenHooks::uninstall() instead.
+ */
+#[LegacyHook]
+function graphql_compose_codegen_uninstall(): void {
+  \Drupal::service(GraphqlComposeCodegenHooks::class)->uninstall();
 }

@@ -16,7 +16,10 @@ use Drupal\Core\State\StateInterface;
  */
 final class ArtefactSnapshot {
 
-  private const STATE_KEY = 'graphql_compose_codegen.last_snapshot';
+  /**
+   * State key for the last recorded artefact snapshot.
+   */
+  public const STATE_KEY = 'graphql_compose_codegen.last_snapshot';
 
   /**
    * Constructs an ArtefactSnapshot.
