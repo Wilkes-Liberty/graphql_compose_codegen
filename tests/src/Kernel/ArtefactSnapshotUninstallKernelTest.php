@@ -26,7 +26,6 @@ final class ArtefactSnapshotUninstallKernelTest extends KernelTestBase {
    */
   protected static $modules = [
     'system',
-    'user',
     'graphql_compose_codegen',
   ];
 

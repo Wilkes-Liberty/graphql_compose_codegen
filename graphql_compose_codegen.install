@@ -32,9 +32,9 @@ function graphql_compose_codegen_requirements(string $phase): array {
 /**
  * Implements hook_uninstall().
  *
- * hook_uninstall cannot be an attribute hook (Drupal core deny list).
  * Config is removed on uninstall; State is not. Leftover snapshot hashes
- * would make gqcc:diff inherit the previous enablement.
+ * would make gqcc:diff inherit the previous enablement. This hook stays
+ * procedural because Drupal core deny-lists attribute hook_uninstall.
  */
 function graphql_compose_codegen_uninstall(): void {
   \Drupal::state()->delete(ArtefactSnapshot::STATE_KEY);
