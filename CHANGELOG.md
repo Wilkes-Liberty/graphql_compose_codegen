@@ -9,6 +9,8 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+## [1.4.1] — 2026-09-19
+
 ### Fixed
 
 - Uninstall deletes leftover `graphql_compose_codegen.last_snapshot` state
