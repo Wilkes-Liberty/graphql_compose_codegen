@@ -9,6 +9,14 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+### Fixed
+
+- Uninstall deletes leftover `graphql_compose_codegen.last_snapshot` state
+  so `gqcc:diff` cannot inherit hashes from a previous enablement.
+- Schema inspect, diff, and preview tools no longer refuse every request
+  on MCP Sentinel 2.22.1, which removed `checkResponseSizeCap()`. The tools
+  now apply the profile response-size cap through the exfiltration guard.
+
 ## [1.4.0] — 2026-09-18
 
 ### Changed

@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 use Drupal\Core\Hook\Attribute\LegacyRequirementsHook;
 use Drupal\graphql_compose_codegen\Hook\GraphqlComposeCodegenHooks;
+use Drupal\graphql_compose_codegen\Service\ArtefactSnapshot;
 
 /**
  * Implements hook_requirements().
@@ -26,4 +27,15 @@ function graphql_compose_codegen_requirements(string $phase): array {
 
   return \Drupal::service(GraphqlComposeCodegenHooks::class)
     ->runtimeRequirements();
+}
+
+/**
+ * Implements hook_uninstall().
+ *
+ * Config is removed on uninstall; State is not. Leftover snapshot hashes
+ * would make gqcc:diff inherit the previous enablement. This hook stays
+ * procedural because Drupal core deny-lists attribute hook_uninstall.
+ */
+function graphql_compose_codegen_uninstall(): void {
+  \Drupal::state()->delete(ArtefactSnapshot::STATE_KEY);
 }
