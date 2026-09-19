@@ -8,8 +8,10 @@ use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\graphql_compose_codegen\Service\SchemaPreview;
+use Drupal\mcp_sentinel\McpPolicyProfileInterface;
 use Drupal\mcp_sentinel\Plugin\tool\Tool\McpEntityToolTrait;
 use Drupal\mcp_sentinel\Plugin\tool\Tool\McpGovernedToolBase;
+use Drupal\mcp_sentinel\Service\McpExfiltrationGuard;
 use Drupal\mcp_sentinel\Tool\ConfigScopeToolInterface;
 use Drupal\tool\ExecutableResult;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -29,11 +31,17 @@ abstract class SchemaToolBase extends McpGovernedToolBase implements ConfigScope
   protected SchemaPreview $preview;
 
   /**
+   * MCP Sentinel response-size cap.
+   */
+  protected McpExfiltrationGuard $exfiltrationGuard;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     $instance = parent::create($container, $configuration, $plugin_id, $plugin_definition);
     $instance->preview = $container->get('graphql_compose_codegen.schema_preview');
+    $instance->exfiltrationGuard = $container->get('mcp_sentinel.exfiltration_guard');
     return $instance;
   }
 
@@ -86,7 +94,8 @@ abstract class SchemaToolBase extends McpGovernedToolBase implements ConfigScope
         return $limited;
       }
       $result = $this->preview->run(static::OPERATION, $values['bundles'] ?? [], $values['skip_fields'] ?? []);
-      if ($limited = $this->checkResponseSizeCap(json_encode($result, JSON_THROW_ON_ERROR), $profile)) {
+      $serialized = json_encode($result, JSON_THROW_ON_ERROR);
+      if ($limited = $this->refuseOversizedResponse($serialized, $profile)) {
         return $limited;
       }
       return ExecutableResult::success($this->t('Schema operation completed.'), $result);
@@ -101,6 +110,36 @@ abstract class SchemaToolBase extends McpGovernedToolBase implements ConfigScope
       // Do not relay mapper errors, schema values, or filesystem paths.
       return ExecutableResult::failure($this->t('Schema operation refused. Check selectors and schema limits.'));
     }
+  }
+
+  /**
+   * Refuses a payload that exceeds the profile's response-size cap.
+   *
+   * Calls the exfiltration guard directly. MCP Sentinel 2.22.1 removed
+   * McpEntityToolTrait::checkResponseSizeCap(); the guard service remains.
+   *
+   * @param string $serialized
+   *   JSON-encoded tool result.
+   * @param \Drupal\mcp_sentinel\McpPolicyProfileInterface $profile
+   *   Active governance profile.
+   *
+   * @return \Drupal\tool\ExecutableResult|null
+   *   Failure result when over cap, NULL when within limits.
+   */
+  private function refuseOversizedResponse(string $serialized, McpPolicyProfileInterface $profile): ?ExecutableResult {
+    $bytes = strlen($serialized);
+    if ($this->exfiltrationGuard->exceedsResponseSizeCap($bytes, $profile)) {
+      return ExecutableResult::failure(
+        $this->t(
+          'Response size @bytes bytes exceeds the MCP Sentinel cap of @cap bytes for this profile. Narrow your query.',
+          [
+            '@bytes' => $bytes,
+            '@cap' => $this->exfiltrationGuard->effectiveResponseSizeCap($profile),
+          ]
+        )
+      );
+    }
+    return NULL;
   }
 
 }
