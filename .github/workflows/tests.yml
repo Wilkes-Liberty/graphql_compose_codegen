@@ -156,7 +156,7 @@ jobs:
             "drush/drush:^13" \
             "drupal/paragraphs:^1.15" \
             "drupal/webform:^6.3@RC" \
-            "drupal/mcp_sentinel:^2.21.1" \
+            "drupal/mcp_sentinel:^2.22.0" \
             "drupal/tool:^1.0.0-beta8"
 
       - name: Assert the versions actually under test
