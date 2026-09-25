@@ -122,8 +122,8 @@ final class CodegenCommands extends DrushCommands {
   #[CLI\Option(name: 'dry-run', description: 'Print what would be written without touching disk.')]
   #[CLI\Option(name: 'allow-external', description: 'Permit output-dir paths outside the project root.')]
   #[CLI\Usage(name: 'drush gqcc:generate', description: 'Print scaffold for all bundles to stdout.')]
-  #[CLI\Usage(name: 'drush gqcc:generate --output-dir=../ui', description: 'Write scaffold to ../ui/generated/.')]
-  #[CLI\Usage(name: 'drush gqcc:generate --output-dir=../ui --dry-run', description: 'Preview without writing.')]
+  #[CLI\Usage(name: 'drush gqcc:generate --output-dir=/path/to/nextjs', description: 'Write scaffold to /path/to/nextjs/generated/.')]
+  #[CLI\Usage(name: 'drush gqcc:generate --output-dir=/path/to/nextjs --dry-run', description: 'Preview without writing.')]
   public function generate(
     array $options = [
       'bundles' => '',
@@ -236,7 +236,7 @@ final class CodegenCommands extends DrushCommands {
   #[CLI\Option(name: 'output-dir', description: 'Path to Next.js project root (required).')]
   #[CLI\Option(name: 'skip-fields', description: 'Comma-separated extra field names to exclude.')]
   #[CLI\Option(name: 'allow-external', description: 'Permit output-dir paths outside the project root.')]
-  #[CLI\Usage(name: 'drush gqcc:validate --output-dir=../ui', description: 'Exit non-zero if scaffold files on disk are out of sync with the live schema.')]
+  #[CLI\Usage(name: 'drush gqcc:validate --output-dir=/path/to/nextjs', description: 'Exit non-zero if scaffold files on disk are out of sync with the live schema.')]
   public function validate(
     array $options = [
       'bundles' => '',
