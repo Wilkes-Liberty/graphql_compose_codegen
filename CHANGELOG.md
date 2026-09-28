@@ -9,6 +9,14 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+## [1.4.2] — 2026-09-28
+
+### Changed
+
+- CI requires Twig below 3.30 on the PHPUnit legs and pins the MCP Sentinel
+  CI constraint to ^2.22.
+- Drush usage examples and the README show an absolute `--output-dir` path.
+
 ## [1.4.1] — 2026-09-19
 
 ### Fixed
