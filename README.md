@@ -69,7 +69,7 @@ base_type_fields:
   # ... add any project-specific common fields
   # (field_hero_image, field_primary_cta, field_industries, …)
 base_ts_type: NodeCommonFields
-output_dir: '../ui'   # relative to Drupal root — or use an absolute path
+output_dir: '/path/to/nextjs'   # PathGuard-legal absolute path (no '..' segments)
 ```
 
 | Key | Default | Description |
@@ -93,26 +93,27 @@ drush gqcc:inspect --bundles=platform,service
 # Print all scaffold artefacts to stdout (review before writing):
 drush gqcc:generate
 
-# Write scaffold to ../ui/generated/ (relative to Drupal root):
-drush gqcc:generate --output-dir=../ui
+# Write scaffold to /path/to/nextjs/generated/:
+drush gqcc:generate --output-dir=/path/to/nextjs
 
 # Scaffold only new bundles:
-drush gqcc:generate --bundles=newsletter,event --output-dir=../ui
+drush gqcc:generate --bundles=newsletter,event --output-dir=/path/to/nextjs
 
 # Regenerate even if scaffold files already exist:
-drush gqcc:generate --output-dir=../ui --overwrite
+drush gqcc:generate --output-dir=/path/to/nextjs --overwrite
 
 # Skip fields that are being handled elsewhere:
 drush gqcc:generate --skip-fields=field_components,field_paragraphs
 
 # Preview without writing:
-drush gqcc:generate --output-dir=../ui --dry-run
+drush gqcc:generate --output-dir=/path/to/nextjs --dry-run
 ```
 
 ### Integrating the scaffold
 
-After running `drush gqcc:generate --output-dir=../ui`, the generated files
-land in `../ui/generated/`. Integrate them manually:
+After running `drush gqcc:generate --output-dir=/path/to/nextjs`, the
+generated files land in `/path/to/nextjs/generated/`. Integrate them
+manually:
 
 1. **`types.generated.d.ts`** — copy each new `export type Drupal*` block into
    `types/index.d.ts`, and add the new type name to the `DrupalNode` union.
@@ -152,7 +153,7 @@ you need.
 
 ```bash
 # Exits non-zero if scaffold files on disk are out of sync with the live schema.
-drush gqcc:validate --output-dir=../ui
+drush gqcc:validate --output-dir=/path/to/nextjs
 ```
 
 ### Automatic notifications
@@ -177,7 +178,8 @@ you're on a different stack, the modules above may serve you better.
 
 ```
 graphql_compose_codegen/
-├── graphql_compose_codegen.module         # hooks: bundle_create/delete, field_config_*, help, requirements
+├── graphql_compose_codegen.module         # LegacyHook bridges: bundle_create/delete, field_config_*, help
+├── graphql_compose_codegen.install        # hook_requirements (D10) + hook_uninstall
 ├── graphql_compose_codegen.services.yml   # service + plugin manager registrations
 ├── graphql_compose_codegen.routing.yml    # settings form route
 ├── graphql_compose_codegen.links.menu.yml # menu entry under Config → Development
@@ -186,15 +188,19 @@ graphql_compose_codegen/
 ├── config/
 │   ├── install/graphql_compose_codegen.settings.yml
 │   └── schema/graphql_compose_codegen.schema.yml
+├── modules/
+│   └── graphql_compose_codegen_mcp/       # optional governed Tool API schema tools
 └── src/
     ├── Attribute/FieldTypeMapper.php       # plugin attribute
     ├── Drush/Commands/CodegenCommands.php  # Drush 12+ attribute commands
     ├── Form/SettingsForm.php
+    ├── Hook/GraphqlComposeCodegenHooks.php # attribute hooks + runtime requirements
     ├── Plugin/FieldTypeMapper/             # default field-type mapper plugins
     ├── PluginManager/FieldTypeMapperManager.php
     └── Service/
         ├── SchemaInspector.php
         ├── TypeScriptGenerator.php
+        ├── SchemaPreview.php
         ├── ArtefactSnapshot.php
         └── PathGuard.php
 ```
