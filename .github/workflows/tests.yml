@@ -144,8 +144,16 @@ jobs:
           # them. graphql_compose (the module's runtime dependency) and drush
           # (a runtime dependency, whose command classes the Kernel tests
           # instantiate) come in transitively with the module require below.
+          #
+          # twig/twig 3.30.0 compiles Drupal's swapped escape filter as a
+          # direct EscaperRuntime::escape() call and shifts every argument,
+          # so rendered templates fatal (Status Report item lists included).
+          # The ceiling stays in composer.json for the core-dev require below.
+          # Drop it once a release after 3.30.0 fixes
+          # https://github.com/twigphp/Twig/issues/4952
           retry composer require -W --no-interaction --no-progress \
-            "drupal/graphql_compose_codegen:*@dev"
+            "drupal/graphql_compose_codegen:*@dev" \
+            "twig/twig:<3.30"
           # core-dev brings PHPUnit; pin the PHPUnit major per leg so Drupal
           # 10's ^9.6 requirement resolves. drush is pinned to ^13 for a
           # deterministic resolve across legs. paragraphs and webform are
@@ -168,7 +176,9 @@ jobs:
           # require the autoloader inline: php ignores auto_prepend_file for -r
           # code, so Composer\InstalledVersions is otherwise undefined.
           core="$(php -r 'require "vendor/autoload.php"; echo \Composer\InstalledVersions::getPrettyVersion("drupal/core");')"
+          twig="$(php -r 'require "vendor/autoload.php"; echo ltrim(\Composer\InstalledVersions::getPrettyVersion("twig/twig"), "v");')"
           echo "Drupal core: ${core}"
+          echo "Twig: ${twig}"
           vendor/bin/phpunit --version
           vendor/bin/drush --version || true
 
@@ -179,6 +189,11 @@ jobs:
             "${EXPECTED_DRUPAL}".*) ;;
             *) echo "::error::Leg claims Drupal ${EXPECTED_DRUPAL} but resolved ${core}. Fix matrix.constraint rather than this check."; exit 1 ;;
           esac
+
+          # 3.30.0 is the escape-filter regression. A later 3.30.x may fix it;
+          # until the pin above is lifted, any 3.30+ resolve is a missed ceiling.
+          php -r 'exit(version_compare($argv[1], "3.30.0", ">=") ? 1 : 0);' "${twig}" \
+            || { echo "::error::twig/twig ${twig} is at or above 3.30.0. That release breaks Drupal template compilation (https://github.com/twigphp/Twig/issues/4952). Keep the <3.30 require."; exit 1; }
 
       - name: Confirm the working copy is what is under test
         working-directory: drupal
