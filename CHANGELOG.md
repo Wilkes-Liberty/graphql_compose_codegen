@@ -9,6 +9,13 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+## [1.4.3] — 2026-09-29
+
+### Changed
+
+- PHPCS and PHPStan path coverage widened; drop unused tests bootstrap and
+  redundant module/Drush comment noise. Lint-only; runtime behavior unchanged.
+
 ## [1.4.2] — 2026-09-28
 
 ### Changed
