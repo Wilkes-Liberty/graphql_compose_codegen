@@ -26,7 +26,7 @@ Built by **[Jeremy Michael Cerda](https://www.drupal.org/u/jmcerda)** (jmcerda@w
 - **`drush gqcc:diff`** — compare the current schema against the last generation snapshot.
 - **`drush gqcc:validate`** — verify scaffold files on disk are in sync with the live schema (useful in CI / pre-commit).
 - **Schema-change hooks** — logs a Drupal notice at `/admin/reports/dblog` whenever a node or paragraph bundle / field is created or deleted, with the exact `drush gqcc:generate` command to run.
-- **Pluggable field-type mappers** — other modules can register their own Drupal-type → TypeScript-type mappings via tagged plugins.
+- **Pluggable field-type mappers** — other modules can register their own Drupal-type → TypeScript-type mappings via `#[FieldTypeMapper]` attributes.
 
 ## Requirements
 

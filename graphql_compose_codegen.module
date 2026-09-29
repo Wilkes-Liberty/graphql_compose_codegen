@@ -2,15 +2,7 @@
 
 /**
  * @file
- * Hooks for graphql_compose_codegen.
- *
- * Watches for content-model changes (new bundles, new/removed fields) and
- * logs actionable notices so developers know when to re-run
- * `drush gqcc:generate`.
- *
- * Also provides hook_help for the standard Drupal admin help surface.
- * Runtime requirements live in graphql_compose_codegen.install
- * (hook_requirements), which runs across the whole supported core range.
+ * Legacy hook bridges for graphql_compose_codegen.
  */
 
 declare(strict_types=1);

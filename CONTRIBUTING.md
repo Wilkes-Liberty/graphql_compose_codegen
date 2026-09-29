@@ -304,7 +304,7 @@ This `master` exists only in the local repo. It fast-forwards on
 # Make changes.
 
 # Lint.
-./vendor/bin/phpcs --standard=Drupal,DrupalPractice src tests *.module
+./vendor/bin/phpcs --standard=Drupal,DrupalPractice src tests *.module *.install *.api.php modules/graphql_compose_codegen_mcp
 
 # Test.
 SIMPLETEST_DB="sqlite://localhost//tmp/gqcc-test.sqlite" \

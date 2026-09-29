@@ -9,12 +9,10 @@
   <file>src/</file>
   <file>tests/</file>
   <file>graphql_compose_codegen.module</file>
+  <file>graphql_compose_codegen.install</file>
+  <file>graphql_compose_codegen.api.php</file>
+  <file>modules/graphql_compose_codegen_mcp/</file>
 
   <rule ref="Drupal"/>
   <rule ref="DrupalPractice"/>
-
-  <!-- Allow inline HTML in t() strings for the log notices that render <code>. -->
-  <rule ref="Drupal.Semantics.FunctionT.NotLiteralString">
-    <severity>0</severity>
-  </rule>
 </ruleset>
