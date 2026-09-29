@@ -8,6 +8,9 @@ parameters:
     - src
     - tests
     - graphql_compose_codegen.module
+    - graphql_compose_codegen.install
+    - graphql_compose_codegen.api.php
+    - modules/graphql_compose_codegen_mcp
   excludePaths:
     - tests/fixtures/*
   ignoreErrors:

@@ -11,15 +11,12 @@ use Drupal\graphql_compose_codegen\Service\PathGuard;
 use Drupal\graphql_compose_codegen\Service\SchemaInspector;
 use Drupal\graphql_compose_codegen\Service\TypeScriptGenerator;
 use Drush\Attributes as CLI;
-use Drush\Commands\AutowireTrait;
 use Drush\Commands\DrushCommands;
 
 /**
  * Drush commands for graphql_compose_codegen.
  */
 final class CodegenCommands extends DrushCommands {
-
-  use AutowireTrait;
 
   /**
    * Constructs a CodegenCommands instance.
@@ -109,7 +106,7 @@ final class CodegenCommands extends DrushCommands {
   }
 
   /**
-   * Generates TypeScript scaffold artefacts for node bundles.
+   * Generates TypeScript scaffold artefacts.
    */
   #[CLI\Command(
     name: 'graphql-compose-codegen:generate',
