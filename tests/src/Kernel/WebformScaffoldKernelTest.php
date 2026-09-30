@@ -69,7 +69,7 @@ final class WebformScaffoldKernelTest extends KernelTestBase {
    */
   public function testWebformFieldMapsToDrupalWebform(): void {
     $fields = $this->container->get('graphql_compose_codegen.schema_inspector')
-      ->getFieldsForParagraphBundle('p_form');
+      ->getFieldsFor('paragraph', 'p_form');
 
     self::assertArrayHasKey('field_webform', $fields);
     self::assertSame('webform', $fields['field_webform']['drupal_type']);

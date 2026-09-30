@@ -15,22 +15,18 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * @coversDefaultClass \Drupal\graphql_compose_codegen\Service\SchemaInspector
- * @covers \Drupal\graphql_compose_codegen\Service\SchemaInspector::getGraphQlTypeName
- * @covers \Drupal\graphql_compose_codegen\Service\SchemaInspector::getTsTypeName
- * @covers \Drupal\graphql_compose_codegen\Service\SchemaInspector::getGraphQlTypeNameForParagraph
- * @covers \Drupal\graphql_compose_codegen\Service\SchemaInspector::getTsTypeNameForParagraph
+ * @covers \Drupal\graphql_compose_codegen\Service\SchemaInspector::getTypeName
  * @covers \Drupal\graphql_compose_codegen\Service\SchemaInspector::toGqlFieldName
  * @covers \Drupal\graphql_compose_codegen\Service\SchemaInspector::deriveParagraphAlias
+ * @covers \Drupal\graphql_compose_codegen\Service\SchemaInspector::getComponentName
  * @covers \Drupal\graphql_compose_codegen\Service\SchemaInspector::getComponentNameForParagraph
  *
  * @group graphql_compose_codegen
  */
-#[CoversMethod(SchemaInspector::class, 'getGraphQlTypeName')]
-#[CoversMethod(SchemaInspector::class, 'getTsTypeName')]
-#[CoversMethod(SchemaInspector::class, 'getGraphQlTypeNameForParagraph')]
-#[CoversMethod(SchemaInspector::class, 'getTsTypeNameForParagraph')]
+#[CoversMethod(SchemaInspector::class, 'getTypeName')]
 #[CoversMethod(SchemaInspector::class, 'toGqlFieldName')]
 #[CoversMethod(SchemaInspector::class, 'deriveParagraphAlias')]
+#[CoversMethod(SchemaInspector::class, 'getComponentName')]
 #[CoversMethod(SchemaInspector::class, 'getComponentNameForParagraph')]
 #[Group('graphql_compose_codegen')]
 final class SchemaInspectorTest extends TestCase {
@@ -54,31 +50,31 @@ final class SchemaInspectorTest extends TestCase {
    * Tests GraphQL type name generation.
    */
   public function testGraphQlTypeName(): void {
-    self::assertSame('NodeBasicPage', $this->inspector()->getGraphQlTypeName('basic_page'));
-    self::assertSame('NodePlatform', $this->inspector()->getGraphQlTypeName('platform'));
-    self::assertSame('NodeNewsletter', $this->inspector()->getGraphQlTypeName('newsletter'));
+    self::assertSame('NodeBasicPage', $this->inspector()->getTypeName('node', 'gql', 'basic_page'));
+    self::assertSame('NodePlatform', $this->inspector()->getTypeName('node', 'gql', 'platform'));
+    self::assertSame('NodeNewsletter', $this->inspector()->getTypeName('node', 'gql', 'newsletter'));
   }
 
   /**
    * Tests TypeScript type name generation.
    */
   public function testTsTypeName(): void {
-    self::assertSame('DrupalBasicPage', $this->inspector()->getTsTypeName('basic_page'));
-    self::assertSame('DrupalPlatform', $this->inspector()->getTsTypeName('platform'));
+    self::assertSame('DrupalBasicPage', $this->inspector()->getTypeName('node', 'ts', 'basic_page'));
+    self::assertSame('DrupalPlatform', $this->inspector()->getTypeName('node', 'ts', 'platform'));
   }
 
   /**
    * Tests paragraph GraphQL type name generation.
    */
   public function testParagraphGraphQlName(): void {
-    self::assertSame('ParagraphTwoColumn', $this->inspector()->getGraphQlTypeNameForParagraph('two_column'));
+    self::assertSame('ParagraphTwoColumn', $this->inspector()->getTypeName('paragraph', 'gql', 'two_column'));
   }
 
   /**
    * Tests paragraph TypeScript type name generation.
    */
   public function testParagraphTsName(): void {
-    self::assertSame('DrupalParagraphTwoColumn', $this->inspector()->getTsTypeNameForParagraph('two_column'));
+    self::assertSame('DrupalParagraphTwoColumn', $this->inspector()->getTypeName('paragraph', 'ts', 'two_column'));
   }
 
   /**
@@ -119,9 +115,10 @@ final class SchemaInspectorTest extends TestCase {
    */
   public function testParagraphComponentName(): void {
     $i = $this->inspector();
-    self::assertSame('FaqGroupParagraph', $i->getComponentNameForParagraph('p_faq_group'));
+    self::assertSame('FaqGroupParagraph', $i->getComponentName('paragraph', 'p_faq_group'));
     self::assertSame('CapabilityParagraph', $i->getComponentNameForParagraph('capability'));
     self::assertSame('HeroParagraph', $i->getComponentNameForParagraph('p_hero'));
+    self::assertSame('Article', $i->getComponentName('node', 'article'));
   }
 
 }

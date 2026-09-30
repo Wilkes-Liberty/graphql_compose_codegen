@@ -150,7 +150,7 @@ final class ParagraphScaffoldKernelTest extends KernelTestBase {
    * Field descriptors expose reference targets and bundle-specific TS types.
    */
   public function testParagraphFieldDescriptorsIncludeTargets(): void {
-    $fields = $this->inspector()->getFieldsForParagraphBundle('p_faq_group');
+    $fields = $this->inspector()->getFieldsFor('paragraph', 'p_faq_group');
 
     self::assertArrayHasKey('field_items', $fields);
     self::assertSame('paragraph', $fields['field_items']['target_type']);
@@ -195,7 +195,7 @@ final class ParagraphScaffoldKernelTest extends KernelTestBase {
     // Without any graphql_compose config every bundle is listed.
     self::assertSame(
       ['p_faq_group', 'p_faq_item', 'p_tab_group', 'p_tab_item'],
-      array_keys($this->inspector()->getParagraphBundles())
+      array_keys($this->inspector()->getBundlesFor('paragraph'))
     );
 
     // The 3.x per-server config name must be recognized too.
@@ -210,7 +210,7 @@ final class ParagraphScaffoldKernelTest extends KernelTestBase {
 
     self::assertSame(
       ['p_faq_group', 'p_faq_item'],
-      array_keys($this->inspector()->getParagraphBundles())
+      array_keys($this->inspector()->getBundlesFor('paragraph'))
     );
   }
 
@@ -234,7 +234,7 @@ final class ParagraphScaffoldKernelTest extends KernelTestBase {
       ])
       ->save();
 
-    $fields = $this->inspector()->getFieldsForParagraphBundle('p_faq_group');
+    $fields = $this->inspector()->getFieldsFor('paragraph', 'p_faq_group');
     self::assertSame(['field_title'], array_keys($fields));
   }
 

@@ -49,8 +49,8 @@ final class SchemaPreview {
     $this->validateIdentifiers($skipFields, self::MAX_FIELDS_PER_BUNDLE);
     $this->assertSchemaBudget();
 
-    $nodes = $this->inspector->getBundles($bundles);
-    $paragraphs = $this->inspector->getParagraphBundles($bundles);
+    $nodes = $this->inspector->getBundlesFor('node', $bundles);
+    $paragraphs = $this->inspector->getBundlesFor('paragraph', $bundles);
     if (array_diff($bundles, array_keys($nodes), array_keys($paragraphs))) {
       throw new \InvalidArgumentException('Unknown or disabled bundle selector.');
     }
@@ -59,9 +59,9 @@ final class SchemaPreview {
       $nodeFields = [];
       foreach (array_keys($nodes) as $bundle) {
         $nodeFields[$bundle] = [
-          'graphql_type' => $this->inspector->getGraphQlTypeName($bundle),
-          'typescript_type' => $this->inspector->getTsTypeName($bundle),
-          'fields' => $this->inspector->getFieldsForBundle($bundle, $skipFields),
+          'graphql_type' => $this->inspector->getTypeName('node', 'gql', $bundle),
+          'typescript_type' => $this->inspector->getTypeName('node', 'ts', $bundle),
+          'fields' => $this->inspector->getFieldsFor('node', $bundle, $skipFields),
         ];
       }
       $result = [
@@ -112,8 +112,8 @@ final class SchemaPreview {
     // Paragraph aliases depend on all enabled paragraph bundles, including
     // bundles outside a requested subset. Bound that dependency set as well.
     $groups = [
-      'node' => $this->inspector->getBundles(),
-      'paragraph' => $this->inspector->getParagraphBundles(),
+      'node' => $this->inspector->getBundlesFor('node'),
+      'paragraph' => $this->inspector->getBundlesFor('paragraph'),
     ];
     if (count($groups['node']) + count($groups['paragraph']) > self::MAX_BUNDLES) {
       throw new \LengthException('Schema exceeds the preview bundle limit.');

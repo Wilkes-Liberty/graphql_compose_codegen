@@ -11,8 +11,6 @@ parameters:
     - graphql_compose_codegen.install
     - graphql_compose_codegen.api.php
     - modules/graphql_compose_codegen_mcp
-  excludePaths:
-    - tests/fixtures/*
   ignoreErrors:
     # The test suite uses PHPUnit attributes (#[Group], #[CoversClass], ...).
     # This module supports Drupal 10.6, which ships PHPUnit 9 — a version with no

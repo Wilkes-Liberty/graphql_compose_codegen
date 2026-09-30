@@ -79,10 +79,10 @@ final class SchemaInspectorKernelTest extends KernelTestBase {
   public function testExtractsExtraFieldShape(): void {
     $inspector = $this->inspector();
 
-    $bundles = $inspector->getBundles();
+    $bundles = $inspector->getBundlesFor('node');
     self::assertArrayHasKey('demo', $bundles);
 
-    $fields = $inspector->getFieldsForBundle('demo');
+    $fields = $inspector->getFieldsFor('node', 'demo');
     self::assertArrayHasKey('field_tagline', $fields);
 
     $field = $fields['field_tagline'];
@@ -99,7 +99,7 @@ final class SchemaInspectorKernelTest extends KernelTestBase {
   public function testEntityConfigFilteringLimitsNodeBundles(): void {
     NodeType::create(['type' => 'page', 'name' => 'Page'])->save();
 
-    $listed = array_keys($this->inspector()->getBundles());
+    $listed = array_keys($this->inspector()->getBundlesFor('node'));
     sort($listed);
     self::assertSame(['demo', 'page'], $listed);
 
@@ -112,7 +112,7 @@ final class SchemaInspectorKernelTest extends KernelTestBase {
       ])
       ->save();
 
-    self::assertSame(['demo'], array_keys($this->inspector()->getBundles()));
+    self::assertSame(['demo'], array_keys($this->inspector()->getBundlesFor('node')));
   }
 
   /**
@@ -131,7 +131,7 @@ final class SchemaInspectorKernelTest extends KernelTestBase {
       ])
       ->save();
 
-    $fields = $this->inspector()->getFieldsForBundle('demo');
+    $fields = $this->inspector()->getFieldsFor('node', 'demo');
     self::assertSame([], array_keys($fields));
   }
 
