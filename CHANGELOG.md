@@ -9,6 +9,8 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+## [1.5.0] — 2026-09-30
+
 ### Changed
 
 - SchemaInspector public API is parameterized by entity type
