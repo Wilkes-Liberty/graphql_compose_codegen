@@ -60,7 +60,7 @@ final class CodegenCommands extends DrushCommands {
     $only = $this->parseList((string) ($options['bundles'] ?? ''));
     $skip = $this->parseList((string) ($options['skip-fields'] ?? ''));
 
-    $bundleInfo = $this->inspector->getBundles($only);
+    $bundleInfo = $this->inspector->getBundlesFor('node', $only);
     $paragraphMap = $this->inspector->getParagraphFieldMap($only, $skip);
     if (!$bundleInfo && !$paragraphMap) {
       $this->logger()->warning('No matching bundles found.');
@@ -71,24 +71,24 @@ final class CodegenCommands extends DrushCommands {
       $this->writeBundleHeader(
         $bundle,
         (string) ($info['label'] ?? $bundle),
-        $this->inspector->getGraphQlTypeName($bundle),
-        $this->inspector->getTsTypeName($bundle),
+        $this->inspector->getTypeName('node', 'gql', $bundle),
+        $this->inspector->getTypeName('node', 'ts', $bundle),
       );
-      $fields = $this->inspector->getFieldsForBundle($bundle, $skip);
+      $fields = $this->inspector->getFieldsFor('node', $bundle, $skip);
       $this->writeFields($fields);
       $this->output()->writeln('└──');
     }
 
     if ($paragraphMap) {
-      $paragraphInfo = $this->inspector->getParagraphBundles($only);
+      $paragraphInfo = $this->inspector->getBundlesFor('paragraph', $only);
       $this->output()->writeln('');
       $this->output()->writeln('  Paragraph bundles (enabled in graphql_compose):');
       foreach ($paragraphMap as $bundle => $entry) {
         $this->writeBundleHeader(
           $bundle,
           (string) ($paragraphInfo[$bundle]['label'] ?? $bundle),
-          $this->inspector->getGraphQlTypeNameForParagraph($bundle),
-          $this->inspector->getTsTypeNameForParagraph($bundle),
+          $this->inspector->getTypeName('paragraph', 'gql', $bundle),
+          $this->inspector->getTypeName('paragraph', 'ts', $bundle),
         );
         if ($entry['child_only']) {
           $this->output()->writeln('│  (nested-only: selected inside its parent bundles)');
@@ -151,8 +151,8 @@ final class CodegenCommands extends DrushCommands {
       $this->pathGuard->validate($outputDir, $allowExternal);
     }
 
-    $bundleInfo = $this->inspector->getBundles($only);
-    $paragraphBundles = $this->inspector->getParagraphBundles($only);
+    $bundleInfo = $this->inspector->getBundlesFor('node', $only);
+    $paragraphBundles = $this->inspector->getBundlesFor('paragraph', $only);
     if (!$bundleInfo && !$paragraphBundles) {
       $this->logger()->warning('No matching bundles found.');
       return;

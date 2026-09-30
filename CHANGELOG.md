@@ -9,6 +9,13 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+### Changed
+
+- SchemaInspector public API is parameterized by entity type
+  (`getBundlesFor`, `getTypeName`, `getFieldsFor`). The node/paragraph
+  twin wrappers are removed. TypeScriptGenerator looks those up through
+  the spec instead of switching on `'paragraph'`.
+
 ## [1.4.3] — 2026-09-29
 
 ### Changed

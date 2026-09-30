@@ -109,6 +109,8 @@ BANNER;
         'renderer_import' => '@/components/drupal/',
         'renderer_prop' => 'node',
         'renderer_source' => 'node',
+        'stub_dir' => 'components/drupal/',
+        'stub_tag' => 'article',
       ],
       'paragraph' => [
         'id' => 'paragraph',
@@ -138,6 +140,8 @@ BANNER;
         'renderer_import' => './',
         'renderer_prop' => 'data',
         'renderer_source' => 'paragraph',
+        'stub_dir' => 'components/drupal/paragraphs/',
+        'stub_tag' => 'section',
       ],
     ];
   }
@@ -154,9 +158,7 @@ BANNER;
    *   Bundle info keyed by machine name.
    */
   private function bundlesFor(array $spec, array $only): array {
-    return $spec['id'] === 'paragraph'
-      ? $this->inspector->getParagraphBundles($only)
-      : $this->inspector->getBundles($only);
+    return $this->inspector->getBundlesFor($spec['id'], $only);
   }
 
   /**
@@ -171,9 +173,7 @@ BANNER;
    *   The GraphQL type name.
    */
   private function gqlName(array $spec, string $bundle): string {
-    return $spec['id'] === 'paragraph'
-      ? $this->inspector->getGraphQlTypeNameForParagraph($bundle)
-      : $this->inspector->getGraphQlTypeName($bundle);
+    return $this->inspector->getTypeName($spec['id'], 'gql', $bundle);
   }
 
   /**
@@ -188,9 +188,7 @@ BANNER;
    *   The TypeScript type name.
    */
   private function tsName(array $spec, string $bundle): string {
-    return $spec['id'] === 'paragraph'
-      ? $this->inspector->getTsTypeNameForParagraph($bundle)
-      : $this->inspector->getTsTypeName($bundle);
+    return $this->inspector->getTypeName($spec['id'], 'ts', $bundle);
   }
 
   /**
@@ -205,9 +203,7 @@ BANNER;
    *   The component name.
    */
   private function componentName(array $spec, string $bundle): string {
-    return $spec['id'] === 'paragraph'
-      ? $this->inspector->getComponentNameForParagraph($bundle)
-      : str_replace('Drupal', '', $this->inspector->getTsTypeName($bundle));
+    return $this->inspector->getComponentName($spec['id'], $bundle);
   }
 
   /**
@@ -226,7 +222,8 @@ BANNER;
   private function typeEntries(array $spec, array $bundles, array $skipFields): array {
     $bundleInfo = $this->bundlesFor($spec, $bundles);
     $entries = [];
-    if ($spec['id'] === 'paragraph') {
+    // Paragraph response-key aliasing remains the only field-map special case.
+    if ($spec['field_key'] === 'response_key') {
       foreach ($this->inspector->getParagraphFieldMap($bundles, $skipFields) as $bundle => $entry) {
         $entries[$bundle] = [
           'label' => (string) ($bundleInfo[$bundle]['label'] ?? $bundle),
@@ -239,7 +236,7 @@ BANNER;
     foreach ($bundleInfo as $bundle => $info) {
       $entries[$bundle] = [
         'label' => (string) ($info['label'] ?? $bundle),
-        'fields' => $this->inspector->getFieldsForBundle($bundle, $skipFields),
+        'fields' => $this->inspector->getFieldsFor($spec['id'], $bundle, $skipFields),
         'child_only' => FALSE,
       ];
     }
@@ -348,28 +345,10 @@ BANNER;
     }
     $lines[] = '';
 
-    $fullMap = [];
-    if ($spec['id'] === 'paragraph') {
-      // Full map even for a subset: nested child selections come from the
-      // child bundle's own field list, and aliases stay globally stable.
-      $fullMap = $this->inspector->getParagraphFieldMap([], $skipFields);
-      $map = $bundles ? array_intersect_key($fullMap, array_flip($bundles)) : $fullMap;
-      if (!$map) {
-        $lines[] = $spec['empty_comment'];
-        return implode("\n", $lines);
-      }
-      $bundleInfo = $this->inspector->getParagraphBundles($bundles);
-      $entries = [];
-      foreach ($map as $bundle => $entry) {
-        $entries[$bundle] = [
-          'label' => (string) ($bundleInfo[$bundle]['label'] ?? $bundle),
-          'fields' => $entry['fields'],
-          'child_only' => $entry['child_only'],
-        ];
-      }
-    }
-    else {
-      $entries = $this->typeEntries($spec, $bundles, $skipFields);
+    $entries = $this->typeEntries($spec, $bundles, $skipFields);
+    if ($spec['empty_comment'] !== NULL && !$entries) {
+      $lines[] = $spec['empty_comment'];
+      return implode("\n", $lines);
     }
 
     $childOnly = [];
@@ -383,8 +362,8 @@ BANNER;
       $lines[] = "... on {$gqlType} {";
       $lines[] = $spec['fragment_common_line'];
       foreach ($entry['fields'] as $field) {
-        if ($spec['id'] === 'paragraph') {
-          foreach ($this->getParagraphSelectorLines($field, $fullMap) as $selectorLine) {
+        if (isset($field['response_key'])) {
+          foreach ($this->getParagraphSelectorLines($field, $skipFields) as $selectorLine) {
             $lines[] = $selectorLine;
           }
         }
@@ -479,20 +458,14 @@ BANNER;
     $gqlType = $this->gqlName($spec, $bundle);
     $component = $this->componentName($spec, $bundle);
     $label = str_replace('_', ' ', ucwords($bundle, '_'));
-    if ($spec['id'] === 'paragraph') {
-      $map = $this->inspector->getParagraphFieldMap([$bundle]);
-      $fields = $map[$bundle]['fields'] ?? [];
-    }
-    else {
-      $fields = $this->inspector->getFieldsForBundle($bundle);
-    }
+    $fields = $this->typeEntries($spec, [$bundle], [])[$bundle]['fields'] ?? [];
     return $this->buildComponent(
       $component,
       $tsType,
       $gqlType,
       $label,
       $fields,
-      $spec['id'] === 'paragraph',
+      $spec,
     );
   }
 
@@ -506,13 +479,13 @@ BANNER;
    *
    * @param array<string, mixed> $field
    *   A field descriptor including response_key.
-   * @param array<string, array{child_only: bool, fields: array<string, mixed>}> $fullMap
-   *   The unfiltered paragraph field map, for child bundle lookups.
+   * @param string[] $skipFields
+   *   Extra field names to exclude from child selections.
    *
    * @return string[]
    *   Lines indented for placement inside a fragment body.
    */
-  private function getParagraphSelectorLines(array $field, array $fullMap): array {
+  private function getParagraphSelectorLines(array $field, array $skipFields): array {
     $alias = $field['response_key'] !== $field['gql_name'] ? "{$field['response_key']}: " : '';
 
     if (($field['target_type'] ?? NULL) !== 'paragraph') {
@@ -525,9 +498,9 @@ BANNER;
 
     $lines = ["  {$alias}{$field['gql_name']} {", '    __typename'];
     foreach ($field['target_bundles'] as $target) {
-      $childGqlType = $this->inspector->getGraphQlTypeNameForParagraph($target);
+      $childGqlType = $this->inspector->getTypeName('paragraph', 'gql', $target);
       $selectors = [];
-      foreach (($fullMap[$target]['fields'] ?? []) as $childField) {
+      foreach ($this->inspector->getFieldsFor('paragraph', $target, $skipFields) as $childField) {
         $selectors[] = ($childField['target_type'] ?? NULL) === 'paragraph'
           ? "{$childField['gql_name']} { __typename }"
           : $this->getGqlSelector($childField);
@@ -552,15 +525,16 @@ BANNER;
    *   The human-readable bundle label.
    * @param array<string, mixed> $fields
    *   Field descriptor arrays.
-   * @param bool $isParagraph
-   *   Whether this is a paragraph bundle component.
+   * @param array<string, mixed> $spec
+   *   An artefact spec (stub_dir, stub_tag, renderer_prop).
    *
    * @return string
    *   The TSX component stub content.
    */
-  private function buildComponent(string $component, string $tsType, string $gqlType, string $label, array $fields, bool $isParagraph = FALSE): string {
-    $targetDir = $isParagraph ? 'components/drupal/paragraphs/' : 'components/drupal/';
-    $prop = $isParagraph ? 'data' : 'node';
+  private function buildComponent(string $component, string $tsType, string $gqlType, string $label, array $fields, array $spec): string {
+    $targetDir = $spec['stub_dir'];
+    $prop = $spec['renderer_prop'];
+    $tag = $spec['stub_tag'];
     $lines = [self::FILE_BANNER, ''];
     $lines[] = "// ── Rename to {$component}.tsx and move to {$targetDir} ─────────────";
     $lines[] = "import type { {$tsType} } from \"@/types\"";
@@ -573,9 +547,8 @@ BANNER;
     $lines[] = " */";
     $lines[] = "export function {$component}({ {$prop} }: { {$prop}: {$tsType} }) {";
     $lines[] = "  return (";
-    $tag = $isParagraph ? 'section' : 'article';
     $lines[] = "    <{$tag}>";
-    if (!$isParagraph) {
+    if ($prop === 'node') {
       $lines[] = "      <h1>{node.title}</h1>";
       $lines[] = '';
     }
@@ -651,7 +624,7 @@ BANNER;
    * Returns the GraphQL field selector string for a given field descriptor.
    *
    * @param array<string, mixed> $field
-   *   A field descriptor from SchemaInspector::getFieldsForBundle().
+   *   A field descriptor from SchemaInspector::getFieldsFor().
    *
    * @return string
    *   The GraphQL selection string for the field.

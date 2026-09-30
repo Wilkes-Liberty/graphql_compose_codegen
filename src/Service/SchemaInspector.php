@@ -20,11 +20,8 @@ final class SchemaInspector {
    */
   public const SKIP_BASE_FIELDS = [
     'nid', 'vid', 'uuid', 'langcode', 'type',
-    'revision_timestamp', 'revision_uid', 'revision_log', 'revision_log_message',
     'uid', 'created', 'changed', 'promote', 'sticky',
-    'default_langcode', 'revision_default', 'revision_translation_affected',
-    'content_translation_source', 'content_translation_outdated',
-    'content_translation_uid', 'content_translation_created',
+    'default_langcode',
     'metatag',
     'status', 'path',
   ];
@@ -33,10 +30,9 @@ final class SchemaInspector {
    * Drupal-internal base paragraph fields that are never included in output.
    */
   public const SKIP_PARAGRAPH_BASE_FIELDS = [
-    'id', 'revision_id', 'uuid', 'langcode', 'type', 'status', 'created',
+    'id', 'uuid', 'langcode', 'type', 'status', 'created',
     'parent_id', 'parent_type', 'parent_field_name', 'behavior_settings',
-    'default_langcode', 'revision_default', 'revision_translation_affected',
-    'content_translation_source', 'content_translation_outdated',
+    'default_langcode',
   ];
 
   /**
@@ -59,51 +55,69 @@ final class SchemaInspector {
   ) {}
 
   /**
-   * Returns all node bundles, optionally filtered by bundle ID.
+   * Returns bundles for one entity type, honoring graphql_compose enablement.
    *
    * When graphql_compose entity_config exists, only bundles with both
    * enabled and query_load_enabled are returned. Without that config,
-   * every bundle is listed.
+   * every bundle is listed. Paragraphs return empty if the module is
+   * not installed.
    *
+   * @param string $entityType
+   *   The entity type ID (node or paragraph).
    * @param string[] $only
    *   If non-empty, only these bundle IDs are returned.
    *
    * @return array<string, mixed>
    *   Bundle info keyed by bundle machine name.
    */
-  public function getBundles(array $only = []): array {
-    return $this->getBundlesFor('node', $only);
+  public function getBundlesFor(string $entityType, array $only = []): array {
+    $spec = $this->entityTypeSpecs()[$entityType];
+    $all = $this->bundleInfo->getBundleInfo($spec['entity_type_id']);
+    if (!$all) {
+      return [];
+    }
+    if ($spec['sort_bundles']) {
+      ksort($all);
+    }
+    $compose = $this->getComposeConfig($spec['entity_type_id']);
+    if ($compose !== NULL) {
+      $all = array_filter(
+        $all,
+        fn(string $bundle) => !empty($compose['entities'][$bundle]['enabled'])
+          && !empty($compose['entities'][$bundle]['query_load_enabled']),
+        ARRAY_FILTER_USE_KEY,
+      );
+    }
+    return $only ? array_intersect_key($all, array_flip($only)) : $all;
   }
 
   /**
-   * Returns the GraphQL type name for a node bundle.
+   * Builds a GraphQL or TypeScript type name from an entity-type spec.
    *
+   * @param string $entityType
+   *   The entity type ID (node or paragraph).
+   * @param string $kind
+   *   Either 'gql' or 'ts'.
    * @param string $bundle
    *   The bundle machine name.
    *
    * @return string
-   *   The GraphQL type name (e.g. NodeArticle).
+   *   The prefixed PascalCase type name.
    */
-  public function getGraphQlTypeName(string $bundle): string {
-    return $this->prefixedName('node', 'gql', $bundle);
+  public function getTypeName(string $entityType, string $kind, string $bundle): string {
+    $spec = $this->entityTypeSpecs()[$entityType];
+    $prefix = $kind === 'gql' ? $spec['gql_prefix'] : $spec['ts_prefix'];
+    return $prefix . str_replace('_', '', ucwords($bundle, '_'));
   }
 
   /**
-   * Returns the TypeScript type name for a node bundle.
+   * Returns extra fields for one entity type and bundle.
    *
-   * @param string $bundle
-   *   The bundle machine name.
+   * Applies the entity-type skip list, optional graphql_compose field
+   * enablement, and — for paragraphs only — nested-reference TS unions.
    *
-   * @return string
-   *   The TypeScript type name (e.g. DrupalArticle).
-   */
-  public function getTsTypeName(string $bundle): string {
-    return $this->prefixedName('node', 'ts', $bundle);
-  }
-
-  /**
-   * Returns extra fields for a node bundle, filtered by skip lists.
-   *
+   * @param string $entityType
+   *   The entity type ID (node or paragraph).
    * @param string $bundle
    *   The bundle machine name.
    * @param string[] $additionalSkip
@@ -112,63 +126,54 @@ final class SchemaInspector {
    * @return array<string, mixed>
    *   Field descriptor arrays keyed by field machine name.
    */
-  public function getFieldsForBundle(string $bundle, array $additionalSkip = []): array {
-    return $this->getFieldsFor('node', $bundle, $additionalSkip);
+  public function getFieldsFor(string $entityType, string $bundle, array $additionalSkip = []): array {
+    $spec = $this->entityTypeSpecs()[$entityType];
+    $fields = $this->collectFields(
+      $spec['entity_type_id'],
+      $bundle,
+      $spec['skip_list'],
+      $additionalSkip,
+    );
+
+    // When graphql_compose field config exists, only fields it explicitly
+    // enables are exposed over the wire, so only those are scaffolded.
+    $compose = $this->getComposeConfig($spec['entity_type_id']);
+    if ($compose !== NULL) {
+      $enabledFields = $compose['fields'][$bundle] ?? [];
+      $fields = array_filter(
+        $fields,
+        fn(string $name) => !empty($enabledFields[$name]['enabled']),
+        ARRAY_FILTER_USE_KEY,
+      );
+    }
+
+    if ($entityType === 'paragraph') {
+      $fields = $this->rewriteNestedParagraphTypes($fields);
+    }
+
+    return $fields;
   }
 
   /**
-   * Returns all paragraph bundles, optionally filtered by bundle ID.
+   * Returns the React component name for a node or paragraph bundle.
    *
-   * @param string[] $only
-   *   If non-empty, only these bundle IDs are returned.
+   * Node bundles strip the Drupal prefix from the TypeScript type
+   * (DrupalArticle → Article). Paragraph bundles follow the
+   * <Bundle>Paragraph convention (p_faq_group → FaqGroupParagraph).
    *
-   * @return array<string, mixed>
-   *   Bundle info keyed by bundle machine name, or empty if paragraphs
-   *   module is not installed.
-   */
-  public function getParagraphBundles(array $only = []): array {
-    return $this->getBundlesFor('paragraph', $only);
-  }
-
-  /**
-   * Returns the GraphQL type name for a paragraph bundle.
-   *
+   * @param string $entityType
+   *   The entity type ID (node or paragraph).
    * @param string $bundle
    *   The bundle machine name.
    *
    * @return string
-   *   The GraphQL type name (e.g. ParagraphHero).
+   *   The component name.
    */
-  public function getGraphQlTypeNameForParagraph(string $bundle): string {
-    return $this->prefixedName('paragraph', 'gql', $bundle);
-  }
-
-  /**
-   * Returns the TypeScript type name for a paragraph bundle.
-   *
-   * @param string $bundle
-   *   The bundle machine name.
-   *
-   * @return string
-   *   The TypeScript type name (e.g. DrupalParagraphHero).
-   */
-  public function getTsTypeNameForParagraph(string $bundle): string {
-    return $this->prefixedName('paragraph', 'ts', $bundle);
-  }
-
-  /**
-   * Returns extra fields for a paragraph bundle, filtered by skip lists.
-   *
-   * @param string $bundle
-   *   The bundle machine name.
-   * @param string[] $additionalSkip
-   *   Extra field names to exclude.
-   *
-   * @return array<string, mixed>
-   *   Field descriptor arrays keyed by field machine name.
-   */
-  public function getFieldsForParagraphBundle(string $bundle, array $additionalSkip = []): array {
-    return $this->getFieldsFor('paragraph', $bundle, $additionalSkip);
+  public function getComponentName(string $entityType, string $bundle): string {
+    if ($entityType === 'paragraph') {
+      return $this->getComponentNameForParagraph($bundle);
+    }
+    return str_replace('Drupal', '', $this->getTypeName($entityType, 'ts', $bundle));
   }
 
   /**
@@ -196,10 +201,10 @@ final class SchemaInspector {
    *   response_key, keyed by bundle machine name.
    */
   public function getParagraphFieldMap(array $only = [], array $additionalSkip = []): array {
-    $bundles = array_keys($this->getParagraphBundles());
+    $bundles = array_keys($this->getBundlesFor('paragraph'));
     $fieldsByBundle = [];
     foreach ($bundles as $bundle) {
-      $fieldsByBundle[$bundle] = $this->getFieldsForParagraphBundle($bundle, $additionalSkip);
+      $fieldsByBundle[$bundle] = $this->getFieldsFor('paragraph', $bundle, $additionalSkip);
     }
 
     $childOnly = [];
@@ -328,101 +333,6 @@ final class SchemaInspector {
   }
 
   /**
-   * Returns bundles for one entity type, honoring graphql_compose enablement.
-   *
-   * @param string $entityType
-   *   The entity type ID (node or paragraph).
-   * @param string[] $only
-   *   If non-empty, only these bundle IDs are returned.
-   *
-   * @return array<string, mixed>
-   *   Bundle info keyed by bundle machine name.
-   */
-  private function getBundlesFor(string $entityType, array $only = []): array {
-    $spec = $this->entityTypeSpecs()[$entityType];
-    $all = $this->bundleInfo->getBundleInfo($spec['entity_type_id']);
-    if (!$all) {
-      return [];
-    }
-    if ($spec['sort_bundles']) {
-      ksort($all);
-    }
-    $compose = $this->getComposeConfig($spec['entity_type_id']);
-    if ($compose !== NULL) {
-      $all = array_filter(
-        $all,
-        fn(string $bundle) => !empty($compose['entities'][$bundle]['enabled'])
-          && !empty($compose['entities'][$bundle]['query_load_enabled']),
-        ARRAY_FILTER_USE_KEY,
-      );
-    }
-    return $only ? array_intersect_key($all, array_flip($only)) : $all;
-  }
-
-  /**
-   * Builds a GraphQL or TypeScript type name from an entity-type spec.
-   *
-   * @param string $entityType
-   *   The entity type ID (node or paragraph).
-   * @param string $kind
-   *   Either 'gql' or 'ts'.
-   * @param string $bundle
-   *   The bundle machine name.
-   *
-   * @return string
-   *   The prefixed PascalCase type name.
-   */
-  private function prefixedName(string $entityType, string $kind, string $bundle): string {
-    $spec = $this->entityTypeSpecs()[$entityType];
-    $prefix = $kind === 'gql' ? $spec['gql_prefix'] : $spec['ts_prefix'];
-    return $prefix . str_replace('_', '', ucwords($bundle, '_'));
-  }
-
-  /**
-   * Returns extra fields for one entity type and bundle.
-   *
-   * Applies the entity-type skip list, optional graphql_compose field
-   * enablement, and — for paragraphs only — nested-reference TS unions.
-   *
-   * @param string $entityType
-   *   The entity type ID (node or paragraph).
-   * @param string $bundle
-   *   The bundle machine name.
-   * @param string[] $additionalSkip
-   *   Extra field names to exclude.
-   *
-   * @return array<string, mixed>
-   *   Field descriptor arrays keyed by field machine name.
-   */
-  private function getFieldsFor(string $entityType, string $bundle, array $additionalSkip = []): array {
-    $spec = $this->entityTypeSpecs()[$entityType];
-    $fields = $this->collectFields(
-      $spec['entity_type_id'],
-      $bundle,
-      $spec['skip_list'],
-      $additionalSkip,
-    );
-
-    // When graphql_compose field config exists, only fields it explicitly
-    // enables are exposed over the wire, so only those are scaffolded.
-    $compose = $this->getComposeConfig($spec['entity_type_id']);
-    if ($compose !== NULL) {
-      $enabledFields = $compose['fields'][$bundle] ?? [];
-      $fields = array_filter(
-        $fields,
-        fn(string $name) => !empty($enabledFields[$name]['enabled']),
-        ARRAY_FILTER_USE_KEY,
-      );
-    }
-
-    if ($entityType === 'paragraph') {
-      $fields = $this->rewriteNestedParagraphTypes($fields);
-    }
-
-    return $fields;
-  }
-
-  /**
    * Rewrites nested paragraph references to enabled-bundle TS unions.
    *
    * @param array<string, mixed> $fields
@@ -437,13 +347,13 @@ final class SchemaInspector {
       if ($field['target_type'] !== 'paragraph' || !$field['target_bundles']) {
         continue;
       }
-      $enabledBundles ??= array_keys($this->getParagraphBundles());
+      $enabledBundles ??= array_keys($this->getBundlesFor('paragraph'));
       $targets = array_values(array_intersect($field['target_bundles'], $enabledBundles));
       if (!$targets) {
         continue;
       }
       $names = array_map(
-        fn(string $target) => $this->getTsTypeNameForParagraph($target),
+        fn(string $target) => $this->getTypeName('paragraph', 'ts', $target),
         $targets,
       );
       $fields[$name]['target_bundles'] = $targets;

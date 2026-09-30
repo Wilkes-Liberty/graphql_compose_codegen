@@ -210,7 +210,7 @@ At minimum, add a Kernel test that:
 
 1. Installs a node bundle with the target field type attached.
 2. Resolves the `graphql_compose_codegen.schema_inspector` service.
-3. Calls `getFieldsForBundle('demo')` and asserts `ts_type` matches the
+3. Calls `getFieldsFor('node', 'demo')` and asserts `ts_type` matches the
    expected TypeScript string.
 
 See `tests/src/Kernel/SchemaInspectorKernelTest.php` for the pattern.

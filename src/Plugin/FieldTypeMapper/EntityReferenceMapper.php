@@ -34,21 +34,4 @@ final class EntityReferenceMapper extends FieldTypeMapperBase {
     };
   }
 
-  /**
-   * {@inheritdoc}
-   *
-   * Override map() because paragraph references already return '[]' from
-   * getBaseTsType — don't double-append.
-   */
-  public function map(FieldDefinitionInterface $definition): string {
-    $base = $this->getBaseTsType($definition);
-    if ($definition->getType() === 'entity_reference_revisions') {
-      return str_ends_with($base, '[]') ? $base : $base . '[]';
-    }
-    if ($this->isMulti($definition) && !str_ends_with($base, '[]')) {
-      $base .= '[]';
-    }
-    return $base;
-  }
-
 }
