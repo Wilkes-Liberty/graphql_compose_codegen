@@ -159,4 +159,33 @@ final class CodegenCommandsKernelTest extends KernelTestBase {
     );
   }
 
+  /**
+   * A skipped field must be absent from the node component stub.
+   *
+   * The stub lists each field in a comment. Rebuilding type entries with an
+   * empty skip list would leave the field in that comment while types and
+   * fragments honored --skip-fields.
+   */
+  public function testSkippedFieldIsAbsentFromNodeComponentStub(): void {
+    /** @var \Drupal\graphql_compose_codegen\Service\TypeScriptGenerator $gen */
+    $gen = $this->container->get('graphql_compose_codegen.typescript_generator');
+
+    $present = $gen->buildArtefacts(['demo']);
+    self::assertArrayHasKey('components/Demo.generated.tsx', $present);
+    self::assertStringContainsString(
+      '{/* tagline: string */}',
+      $present['components/Demo.generated.tsx'],
+    );
+
+    $skipped = $gen->buildArtefacts(['demo'], ['field_tagline']);
+    self::assertArrayHasKey('components/Demo.generated.tsx', $skipped);
+    $stub = $skipped['components/Demo.generated.tsx'];
+    self::assertStringNotContainsString('{/* tagline:', $stub);
+    self::assertStringContainsString('{/* (no extra fields) */}', $stub);
+    self::assertStringNotContainsString(
+      'field_tagline',
+      $skipped['types.generated.d.ts'],
+    );
+  }
+
 }
