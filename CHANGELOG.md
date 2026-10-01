@@ -9,6 +9,16 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+### Fixed
+
+- The optional Codegen MCP tools no longer pass `permission` to the Tool
+  attribute. That argument exists only in Tool API 1.0.0-beta11 and later;
+  on beta8 to beta10, the supported floor, it broke plugin discovery for every
+  Tool on the site. Access is unchanged: it was already enforced in code
+  ("access mcp sentinel context" and "administer graphql_compose_codegen").
+  CI floor legs now pin Tool API 1.0.0-beta8.
+  ([#3627533](https://www.drupal.org/project/graphql_compose_codegen/issues/3627533))
+
 ## [1.6.0] — 2026-10-01
 
 ### Changed

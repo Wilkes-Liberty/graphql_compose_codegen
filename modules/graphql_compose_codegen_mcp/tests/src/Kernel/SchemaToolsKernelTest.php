@@ -142,6 +142,22 @@ final class SchemaToolsKernelTest extends KernelTestBase {
   }
 
   /**
+   * The codegen permission alone does not open the tools.
+   *
+   * Access must still require the MCP Sentinel context permission now that it
+   * is enforced in code rather than declared on the Tool attribute.
+   */
+  public function testCodegenPermissionWithoutSentinelAccessIsRefused(): void {
+    $account = $this->createUser(['administer graphql_compose_codegen']);
+    $this->container->get('current_user')->setAccount($account);
+    foreach (self::TOOL_IDS as $plugin_id) {
+      $tool = $this->container->get('plugin.manager.tool')->createInstance($plugin_id);
+      self::assertFalse($tool->discoveryAccess($account)->isAllowed(), $plugin_id);
+      self::assertFalse($tool->access(), $plugin_id);
+    }
+  }
+
+  /**
    * Neither disabled auditing nor config restrictions permit direct execution.
    */
   public function testGovernanceChangesRefuseDirectExecution(): void {

@@ -43,7 +43,6 @@ use Drupal\tool\TypedData\OutputDefinition;
       description: new TranslatableMarkup('Generated scaffold contents keyed by relative path.'),
     ),
   ],
-  permission: 'access mcp sentinel context,administer graphql_compose_codegen',
 )]
 final class SchemaPreviewTool extends SchemaToolBase {
 
