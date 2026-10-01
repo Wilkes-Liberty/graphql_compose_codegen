@@ -13,6 +13,3 @@ composer.lock
 /.phpunit.result.cache
 /.phpcs-cache
 /phpunit.xml
-
-# Internal brainstorming / specs / plans (not shipped on d.o)
-/docs/superpowers/

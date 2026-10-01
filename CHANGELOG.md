@@ -11,6 +11,13 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ### Changed
 
+- `TypeScriptGenerator::buildArtefacts()` computes `typeEntries()` once per
+  spec and reuses that map for types, fragments, renderer cases, and stubs.
+- `hook_help` links the settings form via
+  `Url::fromRoute('graphql_compose_codegen.settings_form')`.
+- `PathGuard::lexicalNormalise()` no longer handles `..` segments (already
+  rejected by `validate()`). Drop the orphan `.gitignore` `/docs/superpowers/`
+  entry.
 - Optional Codegen MCP tools declare typed outputs and plugin permissions.
   Kernel coverage now includes authorized reads, anonymous and wrong-scope
   refusal, malformed and oversized selectors, disabled integration,

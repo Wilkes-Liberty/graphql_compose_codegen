@@ -58,12 +58,13 @@ BANNER;
       if (!$bundleInfo) {
         continue;
       }
-      $artefacts[$spec['types_file']] = $this->generateTypesFor($spec, $bundles, $skipFields);
-      $artefacts[$spec['fragments_file']] = $this->generateFragmentsFor($spec, $bundles, $skipFields);
-      $artefacts[$spec['renderer_file']] = $this->generateRendererFor($spec, $bundles);
+      $entries = $this->typeEntries($spec, $bundles, $skipFields);
+      $artefacts[$spec['types_file']] = $this->generateTypesFor($spec, $entries);
+      $artefacts[$spec['fragments_file']] = $this->generateFragmentsFor($spec, $entries, $skipFields);
+      $artefacts[$spec['renderer_file']] = $this->generateRendererFor($spec, $entries);
       foreach (array_keys($bundleInfo) as $bundle) {
         $component = $this->componentName($spec, $bundle);
-        $artefacts[$spec['component_dir'] . $component . '.generated.tsx'] = $this->generateStubFor($spec, $bundle);
+        $artefacts[$spec['component_dir'] . $component . '.generated.tsx'] = $this->generateStubFor($spec, $bundle, $entries);
       }
     }
 
@@ -248,17 +249,14 @@ BANNER;
    *
    * @param array<string, mixed> $spec
    *   An artefact spec.
-   * @param string[] $bundles
-   *   Optional bundle ID filter.
-   * @param string[] $skipFields
-   *   Extra field names to exclude.
+   * @param array<string, array{label: string, fields: array<string, mixed>, child_only: bool}> $entries
+   *   Per-bundle type entries from typeEntries().
    *
    * @return string
    *   The types artefact content.
    */
-  private function generateTypesFor(array $spec, array $bundles, array $skipFields): string {
+  private function generateTypesFor(array $spec, array $entries): string {
     $lines = [self::FILE_BANNER, '', $spec['types_banner'], ''];
-    $entries = $this->typeEntries($spec, $bundles, $skipFields);
     if ($spec['empty_comment'] !== NULL && !$entries) {
       $lines[] = $spec['empty_comment'];
       return implode("\n", $lines);
@@ -330,22 +328,21 @@ BANNER;
    *
    * @param array<string, mixed> $spec
    *   An artefact spec.
-   * @param string[] $bundles
-   *   Optional bundle ID filter.
+   * @param array<string, array{label: string, fields: array<string, mixed>, child_only: bool}> $entries
+   *   Per-bundle type entries from typeEntries().
    * @param string[] $skipFields
-   *   Extra field names to exclude.
+   *   Extra field names to exclude from nested paragraph selections.
    *
    * @return string
    *   The fragments artefact content.
    */
-  private function generateFragmentsFor(array $spec, array $bundles, array $skipFields): string {
+  private function generateFragmentsFor(array $spec, array $entries, array $skipFields): string {
     $lines = [self::FILE_BANNER, ''];
     foreach ($spec['fragments_banners'] as $banner) {
       $lines[] = $banner;
     }
     $lines[] = '';
 
-    $entries = $this->typeEntries($spec, $bundles, $skipFields);
     if ($spec['empty_comment'] !== NULL && !$entries) {
       $lines[] = $spec['empty_comment'];
       return implode("\n", $lines);
@@ -388,20 +385,19 @@ BANNER;
    *
    * @param array<string, mixed> $spec
    *   An artefact spec.
-   * @param string[] $bundles
-   *   Optional bundle ID filter.
+   * @param array<string, array{label: string, fields: array<string, mixed>, child_only: bool}> $entries
+   *   Per-bundle type entries from typeEntries().
    *
    * @return string
    *   The renderer-cases artefact content.
    */
-  private function generateRendererFor(array $spec, array $bundles): string {
+  private function generateRendererFor(array $spec, array $entries): string {
     $lines = [self::FILE_BANNER, ''];
     foreach ($spec['renderer_banners'] as $banner) {
       $lines[] = $banner;
     }
     $lines[] = '';
 
-    $entries = $this->typeEntries($spec, $bundles, []);
     if ($spec['empty_comment'] !== NULL && !$entries) {
       $lines[] = $spec['empty_comment'];
       return implode("\n", $lines);
@@ -449,16 +445,18 @@ BANNER;
    *   An artefact spec.
    * @param string $bundle
    *   The bundle machine name.
+   * @param array<string, array{label: string, fields: array<string, mixed>, child_only: bool}> $entries
+   *   Per-bundle type entries from typeEntries().
    *
    * @return string
    *   The component stub content.
    */
-  private function generateStubFor(array $spec, string $bundle): string {
+  private function generateStubFor(array $spec, string $bundle, array $entries): string {
     $tsType = $this->tsName($spec, $bundle);
     $gqlType = $this->gqlName($spec, $bundle);
     $component = $this->componentName($spec, $bundle);
     $label = str_replace('_', ' ', ucwords($bundle, '_'));
-    $fields = $this->typeEntries($spec, [$bundle], [])[$bundle]['fields'] ?? [];
+    $fields = $entries[$bundle]['fields'] ?? [];
     return $this->buildComponent(
       $component,
       $tsType,
