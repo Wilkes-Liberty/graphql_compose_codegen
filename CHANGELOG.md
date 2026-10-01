@@ -9,7 +9,7 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
-## [1.6.0] - 2026-10-01
+## [1.6.0] — 2026-10-01
 
 ### Changed
 
