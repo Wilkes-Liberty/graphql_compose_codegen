@@ -209,8 +209,11 @@ graphql_compose_codegen/
 
 The optional [Codegen MCP submodule](modules/graphql_compose_codegen_mcp/README.md)
 provides schema inspection, snapshot comparison, and scaffold previews through
-Tool API. MCP Sentinel governs access. Previews never write files or update the
-saved baseline; the base module has no new runtime dependencies.
+Tool API (`graphql_compose_codegen_inspect`, `graphql_compose_codegen_diff`,
+`graphql_compose_codegen_preview`). MCP Sentinel governs access with
+`mcp_config_read`. Previews never write files or update the saved baseline; the
+base module has no new runtime dependencies and remains usable when the
+integration is disabled.
 
 ## Extending the field-type mapper
 

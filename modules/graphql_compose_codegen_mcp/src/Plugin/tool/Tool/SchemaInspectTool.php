@@ -8,6 +8,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\tool\Attribute\Tool;
 use Drupal\tool\Tool\ToolOperation;
 use Drupal\tool\TypedData\InputDefinition;
+use Drupal\tool\TypedData\OutputDefinition;
 
 /**
  * Inspect node and paragraph schema fields without reading content.
@@ -35,6 +36,19 @@ use Drupal\tool\TypedData\InputDefinition;
       default_value: [],
     ),
   ],
+  output_definitions: [
+    'nodes' => new OutputDefinition(
+      data_type: 'any',
+      label: new TranslatableMarkup('Nodes'),
+      description: new TranslatableMarkup('Node field descriptors keyed by bundle.'),
+    ),
+    'paragraphs' => new OutputDefinition(
+      data_type: 'any',
+      label: new TranslatableMarkup('Paragraphs'),
+      description: new TranslatableMarkup('Paragraph alias map keyed by bundle.'),
+    ),
+  ],
+  permission: 'access mcp sentinel context,administer graphql_compose_codegen',
 )]
 final class SchemaInspectTool extends SchemaToolBase {
 
