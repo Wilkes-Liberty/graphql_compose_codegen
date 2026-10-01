@@ -11,6 +11,7 @@ use Drupal\graphql_compose_codegen\Service\SchemaPreview;
 use Drupal\mcp_sentinel\Tool\ConfigScopeToolInterface;
 use Drupal\mcp_sentinel\Tool\McpToolScopeResolver;
 use Drupal\node\Entity\NodeType;
+use Drupal\tool\Exception\InputException;
 use Drupal\tool\Tool\ToolDefinition;
 use Drupal\tool\Tool\ToolInterface;
 use Drupal\tool\Tool\ToolOperation;
@@ -189,7 +190,7 @@ final class SchemaToolsKernelTest extends KernelTestBase {
       self::assertEmpty($tool->getResult()->getContextValues());
     }
 
-    $this->expectException(\InvalidArgumentException::class);
+    $this->expectException(InputException::class);
     $tool->setInputValue('output_dir', '/tmp/codegen-must-not-write');
   }
 
