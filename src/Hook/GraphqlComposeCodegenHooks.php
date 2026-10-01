@@ -13,6 +13,7 @@ use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
+use Drupal\Core\Url;
 use Drupal\field\FieldConfigInterface;
 use Psr\Log\LoggerInterface;
 
@@ -71,7 +72,7 @@ final class GraphqlComposeCodegenHooks {
     $output .= '<dd>' . $this->t('Verify that scaffold files on disk are in sync with the live schema.') . '</dd>';
     $output .= '</dl>';
     $output .= '<p>' . $this->t('Configure default behaviour at <a href=":url">Configuration → Development → GraphQL Compose Codegen</a>.', [
-      ':url' => '/admin/config/development/graphql-compose-codegen',
+      ':url' => Url::fromRoute('graphql_compose_codegen.settings_form')->toString(),
     ]) . '</p>';
 
     return $output;

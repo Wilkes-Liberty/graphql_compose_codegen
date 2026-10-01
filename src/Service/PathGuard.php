@@ -93,10 +93,6 @@ final class PathGuard {
       if ($segment === '' || $segment === '.') {
         continue;
       }
-      if ($segment === '..') {
-        array_pop($segments);
-        continue;
-      }
       $segments[] = $segment;
     }
     return '/' . implode('/', $segments);

@@ -369,4 +369,32 @@ final class ParagraphScaffoldKernelTest extends KernelTestBase {
     self::assertStringNotContainsString('node.title', $stub);
   }
 
+  /**
+   * A skipped field must be absent from the paragraph component stub.
+   *
+   * Same failure as node stubs: rebuilding type entries with an empty skip
+   * list kept the field in the stub comment after --skip-fields.
+   */
+  public function testSkippedFieldIsAbsentFromParagraphComponentStub(): void {
+    $present = $this->generator()->buildArtefacts(['p_faq_group']);
+    $presentStub = $present['paragraphs/components/FaqGroupParagraph.generated.tsx'];
+    self::assertStringContainsString('{/* title: string */}', $presentStub);
+    self::assertStringContainsString(
+      '{/* items: DrupalParagraphPFaqItem[] */}',
+      $presentStub,
+    );
+
+    $skipped = $this->generator()->buildArtefacts(['p_faq_group'], ['field_title']);
+    $stub = $skipped['paragraphs/components/FaqGroupParagraph.generated.tsx'];
+    self::assertStringNotContainsString('{/* title:', $stub);
+    self::assertStringContainsString(
+      '{/* items: DrupalParagraphPFaqItem[] */}',
+      $stub,
+    );
+    self::assertStringNotContainsString(
+      'field_title',
+      $skipped['paragraphs/types.generated.d.ts'],
+    );
+  }
+
 }
