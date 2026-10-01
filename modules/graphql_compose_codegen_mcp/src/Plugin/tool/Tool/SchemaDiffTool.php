@@ -8,6 +8,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\tool\Attribute\Tool;
 use Drupal\tool\Tool\ToolOperation;
 use Drupal\tool\TypedData\InputDefinition;
+use Drupal\tool\TypedData\OutputDefinition;
 
 /**
  * Compare generated artefacts with the saved baseline without changing it.
@@ -35,6 +36,19 @@ use Drupal\tool\TypedData\InputDefinition;
       default_value: [],
     ),
   ],
+  output_definitions: [
+    'has_snapshot' => new OutputDefinition(
+      data_type: 'boolean',
+      label: new TranslatableMarkup('Has snapshot'),
+      description: new TranslatableMarkup('Whether a stored comparison baseline exists.'),
+    ),
+    'changes' => new OutputDefinition(
+      data_type: 'any',
+      label: new TranslatableMarkup('Changes'),
+      description: new TranslatableMarkup('Added, changed, and removed artefact paths.'),
+    ),
+  ],
+  permission: 'access mcp sentinel context,administer graphql_compose_codegen',
 )]
 final class SchemaDiffTool extends SchemaToolBase {
 

@@ -8,6 +8,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\tool\Attribute\Tool;
 use Drupal\tool\Tool\ToolOperation;
 use Drupal\tool\TypedData\InputDefinition;
+use Drupal\tool\TypedData\OutputDefinition;
 
 /**
  * Return scaffold artefacts without writing files or updating the baseline.
@@ -35,6 +36,14 @@ use Drupal\tool\TypedData\InputDefinition;
       default_value: [],
     ),
   ],
+  output_definitions: [
+    'artefacts' => new OutputDefinition(
+      data_type: 'any',
+      label: new TranslatableMarkup('Artefacts'),
+      description: new TranslatableMarkup('Generated scaffold contents keyed by relative path.'),
+    ),
+  ],
+  permission: 'access mcp sentinel context,administer graphql_compose_codegen',
 )]
 final class SchemaPreviewTool extends SchemaToolBase {
 

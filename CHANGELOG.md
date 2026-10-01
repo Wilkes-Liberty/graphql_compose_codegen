@@ -9,6 +9,14 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+### Changed
+
+- Optional Codegen MCP tools declare typed outputs and plugin permissions.
+  Kernel coverage now includes authorized reads, anonymous and wrong-scope
+  refusal, malformed and oversized selectors, disabled integration,
+  generator-identical artefacts, and unchanged files/snapshots.
+  ([#3623734](https://www.drupal.org/project/graphql_compose_codegen/issues/3623734))
+
 ## [1.5.0] — 2026-09-30
 
 ### Changed
