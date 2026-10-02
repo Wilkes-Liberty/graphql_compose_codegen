@@ -9,6 +9,14 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+### Fixed
+
+- Drupal.org GitLab CI no longer fails every push: the project cspell
+  dictionary lists the module's unknown words, and previous-major composer
+  is off because that lane's PHP 8.1 cannot install `mcp_sentinel` or `tool`.
+  Current-major phpunit and phpstan are unchanged. Drupal 10.6 stays covered
+  by GitHub Actions on PHP 8.3.
+
 ## [1.6.1] — 2026-10-01
 
 ### Fixed
