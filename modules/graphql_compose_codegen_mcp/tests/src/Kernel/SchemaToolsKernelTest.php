@@ -148,8 +148,19 @@ final class SchemaToolsKernelTest extends KernelTestBase {
    * is enforced in code rather than declared on the Tool attribute.
    */
   public function testCodegenPermissionWithoutSentinelAccessIsRefused(): void {
-    $account = $this->createUser(['administer graphql_compose_codegen']);
+    // The governed account from setUp() passes readiness and policy, so the
+    // Sentinel context permission is the only gate left once it is revoked.
+    $account = $this->container->get('current_user')->getAccount();
+    foreach (self::TOOL_IDS as $plugin_id) {
+      $tool = $this->container->get('plugin.manager.tool')->createInstance($plugin_id);
+      self::assertTrue($tool->discoveryAccess($account)->isAllowed(), $plugin_id);
+    }
+
+    Role::load('mcp_api')->revokePermission('access mcp sentinel context')->save();
+    $account = $this->container->get('entity_type.manager')->getStorage('user')->load($account->id());
     $this->container->get('current_user')->setAccount($account);
+    self::assertFalse($account->hasPermission('access mcp sentinel context'));
+    self::assertTrue($account->hasPermission('administer graphql_compose_codegen'));
     foreach (self::TOOL_IDS as $plugin_id) {
       $tool = $this->container->get('plugin.manager.tool')->createInstance($plugin_id);
       self::assertFalse($tool->discoveryAccess($account)->isAllowed(), $plugin_id);
