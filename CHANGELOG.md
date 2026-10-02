@@ -9,6 +9,8 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+## [1.6.2] — 2026-10-02
+
 ### Fixed
 
 - Drupal.org GitLab CI no longer fails every push: the project cspell
@@ -16,6 +18,8 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
   is off because that lane's PHP 8.1 cannot install `mcp_sentinel` or `tool`.
   Current-major phpunit and phpstan are unchanged. Drupal 10.6 stays covered
   by GitHub Actions on PHP 8.3.
+- The Sentinel-permission kernel test keeps the governed account. Runtime
+  behavior is unchanged.
 
 ## [1.6.1] — 2026-10-01
 
