@@ -155,6 +155,12 @@ final class SchemaToolsKernelTest extends KernelTestBase {
       self::assertFalse($tool->discoveryAccess($account)->isAllowed(), $plugin_id);
       self::assertFalse($tool->access(), $plugin_id);
     }
+    // ToolBase::execute() does not call access(); doExecute() must refuse.
+    $tool = $this->tool('preview');
+    $tool->setInputValue('bundles', ['demo']);
+    $tool->execute();
+    self::assertFalse($tool->getResultStatus());
+    self::assertEmpty($tool->getResult()->getContextValues());
   }
 
   /**
