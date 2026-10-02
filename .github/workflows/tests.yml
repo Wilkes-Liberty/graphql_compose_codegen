@@ -59,24 +59,25 @@ jobs:
           # majors — the count floor below still guards the one 9.6 gotcha that
           # can silently drop a whole directory (see the PHPUnit step).
           #
-          # The optional MCP submodule declares tool:tool (>=1.0.0-beta8). Floor
-          # legs pin that release so an API added in a later beta (#3627533)
-          # fails here; the ceiling leg floats to the newest beta.
+          # The optional MCP submodule declares tool:tool (>=1.0.0-beta9), the
+          # first release with the OutputDefinition API it uses. Floor legs pin
+          # that release so an API added in a later beta (#3627533) fails here;
+          # the ceiling leg floats to the newest beta.
           - drupal: '10.6'
             constraint: '~10.6.0'
             php: '8.3'
             phpunit: '^9.6'
-            tool: '1.0.0-beta8'
+            tool: '1.0.0-beta9'
           - drupal: '11.3'
             constraint: '~11.3.0'
             php: '8.3'
             phpunit: '^11.5'
-            tool: '1.0.0-beta8'
+            tool: '1.0.0-beta9'
           - drupal: '11'
             constraint: '^11'
             php: '8.4'
             phpunit: '^11.5'
-            tool: '^1.0.0-beta8'
+            tool: '^1.0.0-beta9'
 
     steps:
       - name: Checkout the module

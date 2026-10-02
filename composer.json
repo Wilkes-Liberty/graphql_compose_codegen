@@ -37,7 +37,7 @@
         "drupal/paragraphs": "^1.15",
         "drupal/webform": "^6.3@RC",
         "drupal/mcp_sentinel": "^2.22.0",
-        "drupal/tool": "^1.0.0-beta8"
+        "drupal/tool": "^1.0.0-beta9"
     },
     "suggest": {
         "drupal/scheduler": "Exposes publish_on / unpublish_on fields that gqcc:inspect will type-map automatically.",
