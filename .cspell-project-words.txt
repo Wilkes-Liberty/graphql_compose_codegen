@@ -1,0 +1,15 @@
+# Project words from Drupal.org cspell job 12581782 (pipeline 985065).
+artefacts
+behaviour
+cerda
+exfiltration
+frontends
+gqcc
+graphqls
+mymodule
+nextgen
+normalisation
+normalise
+normalises
+pathguard
+webform
