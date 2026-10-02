@@ -18,6 +18,13 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Shares source access checks for Codegen's read-only configuration tools.
+ *
+ * Access is enforced here and in McpGovernedToolBase, not with the Tool
+ * attribute's `permission` argument. That argument exists only in Tool API
+ * 1.0.0-beta11 and later; declaring it breaks plugin discovery for every
+ * tool on the supported floor (1.0.0-beta9). McpGovernedToolBase requires
+ * "access mcp sentinel context" and this class requires
+ * "administer graphql_compose_codegen".
  */
 abstract class SchemaToolBase extends McpGovernedToolBase implements ConfigScopeToolInterface {
 

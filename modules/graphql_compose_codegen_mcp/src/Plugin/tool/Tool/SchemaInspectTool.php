@@ -48,7 +48,6 @@ use Drupal\tool\TypedData\OutputDefinition;
       description: new TranslatableMarkup('Paragraph alias map keyed by bundle.'),
     ),
   ],
-  permission: 'access mcp sentinel context,administer graphql_compose_codegen',
 )]
 final class SchemaInspectTool extends SchemaToolBase {
 

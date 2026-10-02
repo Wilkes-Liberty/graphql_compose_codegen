@@ -48,7 +48,6 @@ use Drupal\tool\TypedData\OutputDefinition;
       description: new TranslatableMarkup('Added, changed, and removed artefact paths.'),
     ),
   ],
-  permission: 'access mcp sentinel context,administer graphql_compose_codegen',
 )]
 final class SchemaDiffTool extends SchemaToolBase {
 

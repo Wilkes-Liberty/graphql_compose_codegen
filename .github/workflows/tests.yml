@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   phpunit:
-    name: PHPUnit (Drupal ${{ matrix.drupal }}, PHP ${{ matrix.php }})
+    name: PHPUnit (Drupal ${{ matrix.drupal }}, PHP ${{ matrix.php }}, Tool ${{ matrix.tool }})
     runs-on: ubuntu-latest
     strategy:
       # Report every combination: a failure on one core version is a real
@@ -58,18 +58,26 @@ jobs:
           # so the collected test count is identical across the two PHPUnit
           # majors — the count floor below still guards the one 9.6 gotcha that
           # can silently drop a whole directory (see the PHPUnit step).
+          #
+          # The optional MCP submodule declares tool:tool (>=1.0.0-beta9), the
+          # first release with the OutputDefinition API it uses. Floor legs pin
+          # that release so an API added in a later beta (#3627533) fails here;
+          # the ceiling leg floats to the newest beta.
           - drupal: '10.6'
             constraint: '~10.6.0'
             php: '8.3'
             phpunit: '^9.6'
+            tool: '1.0.0-beta9'
           - drupal: '11.3'
             constraint: '~11.3.0'
             php: '8.3'
             phpunit: '^11.5'
+            tool: '1.0.0-beta9'
           - drupal: '11'
             constraint: '^11'
             php: '8.4'
             phpunit: '^11.5'
+            tool: '^1.0.0-beta9'
 
     steps:
       - name: Checkout the module
@@ -125,6 +133,7 @@ jobs:
         env:
           DRUPAL_CONSTRAINT: ${{ matrix.constraint }}
           PHPUNIT_VERSION: ${{ matrix.phpunit }}
+          TOOL_CONSTRAINT: ${{ matrix.tool }}
         run: |
           retry() {
             rc=0
@@ -165,12 +174,13 @@ jobs:
             "drupal/paragraphs:^1.15" \
             "drupal/webform:^6.3@RC" \
             "drupal/mcp_sentinel:^2.22.0" \
-            "drupal/tool:^1.0.0-beta8"
+            "drupal/tool:${TOOL_CONSTRAINT}"
 
       - name: Assert the versions actually under test
         working-directory: drupal
         env:
           EXPECTED_DRUPAL: ${{ matrix.drupal }}
+          EXPECTED_TOOL: ${{ matrix.tool }}
         run: |
           set -euo pipefail
           # require the autoloader inline: php ignores auto_prepend_file for -r
@@ -179,6 +189,8 @@ jobs:
           twig="$(php -r 'require "vendor/autoload.php"; echo ltrim(\Composer\InstalledVersions::getPrettyVersion("twig/twig"), "v");')"
           echo "Drupal core: ${core}"
           echo "Twig: ${twig}"
+          tool="$(php -r 'require "vendor/autoload.php"; echo \Composer\InstalledVersions::getPrettyVersion("drupal/tool");')"
+          echo "Tool API: ${tool}"
           vendor/bin/phpunit --version
           vendor/bin/drush --version || true
 
@@ -188,6 +200,13 @@ jobs:
           case "${core}" in
             "${EXPECTED_DRUPAL}".*) ;;
             *) echo "::error::Leg claims Drupal ${EXPECTED_DRUPAL} but resolved ${core}. Fix matrix.constraint rather than this check."; exit 1 ;;
+          esac
+
+          # A pinned Tool leg must test that exact release, or the floor claim
+          # is unchecked.
+          case "${EXPECTED_TOOL}" in
+            ^*) ;;
+            *) [ "${tool}" = "${EXPECTED_TOOL}" ] || { echo "::error::Leg pins Tool API ${EXPECTED_TOOL} but resolved ${tool}."; exit 1; } ;;
           esac
 
           # 3.30.0 is the escape-filter regression. A later 3.30.x may fix it;
