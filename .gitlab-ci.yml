@@ -54,5 +54,4 @@ variables:
   # and the D10.6 support claim is already exercised on GitHub Actions
   # (.github/workflows/tests.yml, Drupal 10.6 / PHP 8.3). This moves WHERE
   # the 10.6 claim is checked; it does not narrow the claim.
-  # OPT_IN_TEST_PREVIOUS_MAJOR: '1'
-  # _AUTORUN_PREVIOUS_MAJOR: 'all'
+  # Do not enable previous-major.
