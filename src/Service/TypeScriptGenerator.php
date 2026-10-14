@@ -78,7 +78,6 @@ BANNER;
    *   Specs keyed by entity type ID.
    */
   private function artefactSpecs(): array {
-    $empty = '// (No paragraph bundles found — paragraphs module may not be installed.)';
     return [
       'node' => [
         'id' => 'node',
@@ -89,7 +88,6 @@ BANNER;
         'types_banner' => '// ── Merge the following into types/index.d.ts ──────────────────────────────',
         'extends_base' => TRUE,
         'field_key' => 'gql_name',
-        'empty_comment' => NULL,
         'union_mode' => 'commented_extend',
         'union_banner' => '// ── Extend DrupalNode union ─────────────────────────────────────────────────',
         'union_name' => 'DrupalNode',
@@ -122,7 +120,6 @@ BANNER;
         'types_banner' => '// ── Merge the following into types/index.d.ts (paragraph section) ───────────',
         'extends_base' => FALSE,
         'field_key' => 'response_key',
-        'empty_comment' => $empty,
         'union_mode' => 'export',
         'union_banner' => '// ── DrupalParagraph union ──────────────────────────────────────────────────',
         'union_name' => 'DrupalParagraph',
@@ -223,7 +220,6 @@ BANNER;
   private function typeEntries(array $spec, array $bundles, array $skipFields): array {
     $bundleInfo = $this->bundlesFor($spec, $bundles);
     $entries = [];
-    // Paragraph response-key aliasing remains the only field-map special case.
     if ($spec['field_key'] === 'response_key') {
       foreach ($this->inspector->getParagraphFieldMap($bundles, $skipFields) as $bundle => $entry) {
         $entries[$bundle] = [
@@ -257,10 +253,6 @@ BANNER;
    */
   private function generateTypesFor(array $spec, array $entries): string {
     $lines = [self::FILE_BANNER, '', $spec['types_banner'], ''];
-    if ($spec['empty_comment'] !== NULL && !$entries) {
-      $lines[] = $spec['empty_comment'];
-      return implode("\n", $lines);
-    }
 
     $baseType = NULL;
     if ($spec['extends_base']) {
@@ -343,11 +335,6 @@ BANNER;
     }
     $lines[] = '';
 
-    if ($spec['empty_comment'] !== NULL && !$entries) {
-      $lines[] = $spec['empty_comment'];
-      return implode("\n", $lines);
-    }
-
     $childOnly = [];
     foreach ($entries as $bundle => $entry) {
       $gqlType = $this->gqlName($spec, $bundle);
@@ -397,11 +384,6 @@ BANNER;
       $lines[] = $banner;
     }
     $lines[] = '';
-
-    if ($spec['empty_comment'] !== NULL && !$entries) {
-      $lines[] = $spec['empty_comment'];
-      return implode("\n", $lines);
-    }
 
     $imports = [];
     $cases = [];

@@ -1,9 +1,5 @@
 parameters:
   level: 1
-  # The attribute ignore below only fires on the previous-major job, where
-  # PHPUnit 9 lacks the Attributes namespace. Without this, the current-core job
-  # fails with "Ignored error pattern ... was not matched in reported errors".
-  reportUnmatchedIgnoredErrors: false
   paths:
     - src
     - tests
@@ -11,12 +7,3 @@ parameters:
     - graphql_compose_codegen.install
     - graphql_compose_codegen.api.php
     - modules/graphql_compose_codegen_mcp
-  ignoreErrors:
-    # The test suite uses PHPUnit attributes (#[Group], #[CoversClass], ...).
-    # This module supports Drupal 10.6, which ships PHPUnit 9 — a version with no
-    # PHPUnit\Framework\Attributes namespace at all — so when the previous-major
-    # job analyses against that stack every attribute resolves to a missing class.
-    # That is a static-analysis artifact, not a defect: PHP attributes are inert
-    # unless something reflects on them, so PHPUnit 9 ignores them and the suite
-    # passes there. Reassess when the supported floor rises above Drupal 10.
-    - "#Attribute class PHPUnit.*Attributes.* does not exist#"
