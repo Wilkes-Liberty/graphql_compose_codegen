@@ -9,6 +9,16 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+## [1.6.3] — 2026-10-15
+
+### Changed
+
+- TypeScript generation drops an empty-paragraph comment path that
+  `buildArtefacts()` never reached. Output for a site with bundles is
+  unchanged. The MCP submodule's package label is GraphQL Compose.
+- GitHub phpcs uses `phpcs.xml.dist`. The always-green composer-audit
+  workflow and unused PHPStan baseline entries are removed.
+
 ## [1.6.2] — 2026-10-02
 
 ### Fixed
