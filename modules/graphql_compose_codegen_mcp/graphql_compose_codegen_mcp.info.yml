@@ -1,7 +1,7 @@
 name: 'GraphQL Compose Codegen MCP'
 type: module
 description: 'Governed, read-only schema inspection and generation previews through Tool API.'
-package: GraphQL
+package: GraphQL Compose
 core_version_requirement: ^10.6 || ^11.3
 dependencies:
   - graphql_compose_codegen:graphql_compose_codegen

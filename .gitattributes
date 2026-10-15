@@ -6,5 +6,6 @@
 /.github         export-ignore
 /.gitlab-ci.yml  export-ignore
 /tests          export-ignore
+/modules/graphql_compose_codegen_mcp/tests export-ignore
 /phpcs.xml.dist  export-ignore
 /phpstan.neon.dist export-ignore
