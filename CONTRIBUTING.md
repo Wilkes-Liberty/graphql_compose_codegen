@@ -94,18 +94,19 @@ plus a small set of project conventions you'll see throughout the codebase.
 
 ### Running phpcs
 
+From the module root. `phpcs.xml.dist` is the source of truth (`Drupal` +
+`DrupalPractice`, the file list, and the `yml` extension). Passing
+`--standard=Drupal,DrupalPractice` and a path list skips that config.
+
 ```bash
-./vendor/bin/phpcs --standard=Drupal,DrupalPractice <path-to-module>
+./vendor/bin/phpcs --standard=phpcs.xml.dist
 ```
 
 Auto-fix what's auto-fixable:
 
 ```bash
-./vendor/bin/phpcbf --standard=Drupal,DrupalPractice <path-to-module>
+./vendor/bin/phpcbf --standard=phpcs.xml.dist
 ```
-
-The project ships a `phpcs.xml.dist` so running `phpcs` from the module root
-applies the right standards automatically.
 
 ### Running PHPStan
 
@@ -304,7 +305,7 @@ This `master` exists only in the local repo. It fast-forwards on
 # Make changes.
 
 # Lint.
-./vendor/bin/phpcs --standard=Drupal,DrupalPractice src tests *.module *.install *.api.php modules/graphql_compose_codegen_mcp
+./vendor/bin/phpcs --standard=phpcs.xml.dist
 
 # Test.
 SIMPLETEST_DB="sqlite://localhost//tmp/gqcc-test.sqlite" \
