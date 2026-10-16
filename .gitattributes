@@ -5,6 +5,7 @@
 /.gitignore      export-ignore
 /.github         export-ignore
 /.gitlab-ci.yml  export-ignore
+/.cspell-project-words.txt export-ignore
 /tests          export-ignore
 /modules/graphql_compose_codegen_mcp/tests export-ignore
 /phpcs.xml.dist  export-ignore
