@@ -9,6 +9,14 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+### Fixed
+
+- Paragraph component stubs use the bundle admin label from
+  `typeEntries()` instead of `ucwords()` on the machine name. The
+  `p_faq_group` fixture (label "FAQ Group") now emits "FAQ Group"
+  rather than "P Faq Group". Types, fragments, and renderer cases
+  already used the admin label.
+
 ## [1.6.3] — 2026-10-15
 
 ### Changed

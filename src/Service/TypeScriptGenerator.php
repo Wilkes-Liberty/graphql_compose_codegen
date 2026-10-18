@@ -437,7 +437,7 @@ BANNER;
     $tsType = $this->tsName($spec, $bundle);
     $gqlType = $this->gqlName($spec, $bundle);
     $component = $this->componentName($spec, $bundle);
-    $label = str_replace('_', ' ', ucwords($bundle, '_'));
+    $label = (string) ($entries[$bundle]['label'] ?? $bundle);
     $fields = $entries[$bundle]['fields'] ?? [];
     return $this->buildComponent(
       $component,
