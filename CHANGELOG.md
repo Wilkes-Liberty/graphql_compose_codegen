@@ -9,6 +9,8 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+## [1.6.4] — 2026-10-19
+
 ### Changed
 
 - Schema preview applies the response-size cap to the outbound
