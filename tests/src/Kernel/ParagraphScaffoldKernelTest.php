@@ -366,6 +366,8 @@ final class ParagraphScaffoldKernelTest extends KernelTestBase {
     );
     self::assertStringContainsString('<section>', $stub);
     self::assertStringContainsString('components/drupal/paragraphs/', $stub);
+    self::assertStringContainsString('FAQ Group', $stub);
+    self::assertStringNotContainsString('P Faq Group', $stub);
     self::assertStringNotContainsString('node.title', $stub);
   }
 
