@@ -9,6 +9,13 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+### Changed
+
+- Schema preview applies the response-size cap to the outbound
+  result only. `diff` can return `has_snapshot` and `changes` when
+  generated artefacts exceed the cap; `preview` still rejects that
+  payload.
+
 ### Fixed
 
 - Paragraph component stubs use the bundle admin label from

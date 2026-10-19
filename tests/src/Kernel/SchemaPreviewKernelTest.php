@@ -141,6 +141,32 @@ final class SchemaPreviewKernelTest extends KernelTestBase {
   }
 
   /**
+   * Diff is capped on the outbound comparison, not generated artefacts.
+   */
+  public function testResponseBudgetAllowsOversizedArtefactsForDiff(): void {
+    $this->config('graphql_compose_codegen.settings')
+      ->set('base_ts_type', str_repeat('X', SchemaPreview::MAX_RESPONSE_BYTES))->save();
+    $artefacts = $this->container->get('graphql_compose_codegen.typescript_generator')
+      ->buildArtefacts(['demo']);
+    self::assertGreaterThan(
+      SchemaPreview::MAX_RESPONSE_BYTES,
+      strlen(json_encode($artefacts, JSON_THROW_ON_ERROR)),
+    );
+
+    $snapshot = $this->container->get('graphql_compose_codegen.artefact_snapshot');
+    $snapshot->record(['old.generated.ts' => 'old content']);
+    $before = $snapshot->load();
+    $result = $this->container->get('graphql_compose_codegen.schema_preview')
+      ->run('diff', ['demo']);
+    self::assertTrue($result['has_snapshot']);
+    self::assertArrayHasKey('added', $result['changes']);
+    self::assertArrayHasKey('removed', $result['changes']);
+    self::assertArrayHasKey('changed', $result['changes']);
+    self::assertSame(['old.generated.ts'], $result['changes']['removed']);
+    self::assertSame($before, $snapshot->load());
+  }
+
+  /**
    * Excessive field definitions are rejected before mapping or generation.
    */
   public function testFieldBudgetRejectsOversizedBundles(): void {

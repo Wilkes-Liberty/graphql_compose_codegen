@@ -71,7 +71,6 @@ final class SchemaPreview {
     }
     else {
       $artefacts = $this->generator->buildArtefacts($bundles, $skipFields);
-      $this->assertResponseBudget($artefacts);
       $result = $operation === 'preview'
         ? ['artefacts' => $artefacts]
         : [
