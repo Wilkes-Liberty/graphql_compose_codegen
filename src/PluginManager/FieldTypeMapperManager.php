@@ -14,7 +14,7 @@ use Drupal\graphql_compose_codegen\Plugin\FieldTypeMapper\FieldTypeMapperInterfa
 /**
  * Plugin manager for field-type mapper plugins.
  */
-class FieldTypeMapperManager extends DefaultPluginManager {
+final class FieldTypeMapperManager extends DefaultPluginManager {
 
   /**
    * Drupal field type plugin ID → plugin ID, populated lazily.

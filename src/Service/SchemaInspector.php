@@ -18,7 +18,7 @@ final class SchemaInspector {
   /**
    * Drupal-internal base node fields that are never included in output.
    */
-  public const SKIP_BASE_FIELDS = [
+  private const SKIP_BASE_FIELDS = [
     'nid', 'vid', 'uuid', 'langcode', 'type',
     'uid', 'created', 'changed', 'promote', 'sticky',
     'default_langcode',
@@ -29,7 +29,7 @@ final class SchemaInspector {
   /**
    * Drupal-internal base paragraph fields that are never included in output.
    */
-  public const SKIP_PARAGRAPH_BASE_FIELDS = [
+  private const SKIP_PARAGRAPH_BASE_FIELDS = [
     'id', 'uuid', 'langcode', 'type', 'status', 'created',
     'parent_id', 'parent_type', 'parent_field_name', 'behavior_settings',
     'default_langcode',
@@ -272,7 +272,7 @@ final class SchemaInspector {
    * @return string
    *   The component name.
    */
-  public function getComponentNameForParagraph(string $bundle): string {
+  private function getComponentNameForParagraph(string $bundle): string {
     $stripped = str_starts_with($bundle, 'p_') ? substr($bundle, 2) : $bundle;
     return str_replace('_', '', ucwords($stripped, '_')) . 'Paragraph';
   }
@@ -303,7 +303,7 @@ final class SchemaInspector {
    * @return string
    *   The TypeScript type string.
    */
-  public function mapFieldType(FieldDefinitionInterface $definition): string {
+  private function mapFieldType(FieldDefinitionInterface $definition): string {
     return $this->mapperManager->mapDefinition($definition);
   }
 

@@ -9,6 +9,17 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+### Changed
+
+- Inspector and generator internals with no out-of-class callers are
+  now private: `SchemaInspector::mapFieldType()`,
+  `getComponentNameForParagraph()`, `SKIP_BASE_FIELDS`,
+  `SKIP_PARAGRAPH_BASE_FIELDS`, and `TypeScriptGenerator::FILE_BANNER`.
+  Field-type mapping remains the `#[FieldTypeMapper]` plugin API.
+  `FieldTypeMapperManager` is `final`. Integrators who called those
+  surfaces must use `getComponentName()` and `#[FieldTypeMapper]`
+  instead.
+
 ## [1.6.4] — 2026-10-19
 
 ### Changed
