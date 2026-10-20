@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\graphql_compose_codegen\Unit\Service;
 
+use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\graphql_compose_codegen\PluginManager\FieldTypeMapperManager;
 use Drupal\graphql_compose_codegen\Service\SchemaInspector;
 use PHPUnit\Framework\Attributes\CoversMethod;
@@ -19,7 +21,6 @@ use PHPUnit\Framework\TestCase;
  * @covers \Drupal\graphql_compose_codegen\Service\SchemaInspector::toGqlFieldName
  * @covers \Drupal\graphql_compose_codegen\Service\SchemaInspector::deriveParagraphAlias
  * @covers \Drupal\graphql_compose_codegen\Service\SchemaInspector::getComponentName
- * @covers \Drupal\graphql_compose_codegen\Service\SchemaInspector::getComponentNameForParagraph
  *
  * @group graphql_compose_codegen
  */
@@ -27,12 +28,14 @@ use PHPUnit\Framework\TestCase;
 #[CoversMethod(SchemaInspector::class, 'toGqlFieldName')]
 #[CoversMethod(SchemaInspector::class, 'deriveParagraphAlias')]
 #[CoversMethod(SchemaInspector::class, 'getComponentName')]
-#[CoversMethod(SchemaInspector::class, 'getComponentNameForParagraph')]
 #[Group('graphql_compose_codegen')]
 final class SchemaInspectorTest extends TestCase {
 
   /**
-   * Returns a SchemaInspector wired with stub dependencies.
+   * Returns a SchemaInspector with stub collaborators.
+   *
+   * FieldTypeMapperManager is constructed rather than stubbed because
+   * the class is final.
    *
    * @return \Drupal\graphql_compose_codegen\Service\SchemaInspector
    *   The inspector instance.
@@ -42,7 +45,11 @@ final class SchemaInspectorTest extends TestCase {
       $this->createStub(EntityTypeBundleInfoInterface::class),
       $this->createStub(EntityFieldManagerInterface::class),
       $this->createStub(ConfigFactoryInterface::class),
-      $this->createStub(FieldTypeMapperManager::class),
+      new FieldTypeMapperManager(
+        new \ArrayObject(),
+        $this->createStub(CacheBackendInterface::class),
+        $this->createStub(ModuleHandlerInterface::class),
+      ),
     );
   }
 
@@ -116,8 +123,8 @@ final class SchemaInspectorTest extends TestCase {
   public function testParagraphComponentName(): void {
     $i = $this->inspector();
     self::assertSame('FaqGroupParagraph', $i->getComponentName('paragraph', 'p_faq_group'));
-    self::assertSame('CapabilityParagraph', $i->getComponentNameForParagraph('capability'));
-    self::assertSame('HeroParagraph', $i->getComponentNameForParagraph('p_hero'));
+    self::assertSame('CapabilityParagraph', $i->getComponentName('paragraph', 'capability'));
+    self::assertSame('HeroParagraph', $i->getComponentName('paragraph', 'p_hero'));
     self::assertSame('Article', $i->getComponentName('node', 'article'));
   }
 
