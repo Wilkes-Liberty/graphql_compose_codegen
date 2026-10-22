@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\graphql_compose_codegen\Form;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Form\ConfigFormBase;
@@ -20,18 +22,39 @@ final class SettingsForm extends ConfigFormBase {
    */
   private const TS_IDENTIFIER_RE = '/^[A-Za-z_$][A-Za-z0-9_$]*$/';
 
+  /**
+   * Constructs the settings form.
+   *
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
+   *   The factory for configuration objects.
+   * @param \Drupal\Core\Config\TypedConfigManagerInterface $typed_config_manager
+   *   The typed config manager.
+   * @param \Drupal\Core\Entity\EntityTypeBundleInfoInterface $bundleInfo
+   *   The entity type bundle information service.
+   * @param \Drupal\Core\Entity\EntityFieldManagerInterface $fieldManager
+   *   The entity field manager.
+   */
   public function __construct(
+    ConfigFactoryInterface $config_factory,
+    TypedConfigManagerInterface $typed_config_manager,
     // Protected and mutable: FormBase carries DependencySerializationTrait,
     // which cannot restore private or readonly properties on unserialize.
     protected EntityTypeBundleInfoInterface $bundleInfo,
     protected EntityFieldManagerInterface $fieldManager,
-  ) {}
+  ) {
+    // ConfigFormBase on Drupal 10.2+ / 11 stores these; skipping the parent
+    // call leaves typedConfigManager unset and relies on deprecated lazy
+    // helpers that Drupal 11.2+ is removing.
+    parent::__construct($config_factory, $typed_config_manager);
+  }
 
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): self {
     return new self(
+      $container->get('config.factory'),
+      $container->get('config.typed'),
       $container->get('entity_type.bundle.info'),
       $container->get('entity_field.manager'),
     );

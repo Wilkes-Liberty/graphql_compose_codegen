@@ -19,6 +19,10 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
   `FieldTypeMapperManager` is `final`. Integrators who called those
   surfaces must use `getComponentName()` and `#[FieldTypeMapper]`
   instead.
+- The settings form forwards `config.factory` and `config.typed` to
+  `ConfigFormBase::__construct()`, matching the Drupal 10.2+ / 11
+  contract. The `configure:` form is now covered by a kernel test
+  that instantiates it through the class resolver and submits it.
 
 ## [1.6.4] — 2026-10-19
 
