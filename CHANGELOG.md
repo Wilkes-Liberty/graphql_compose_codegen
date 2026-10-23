@@ -9,6 +9,14 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+### Fixed
+
+- `gqcc:validate` exits non-zero when leftover files remain under
+  `generated/`. Extra paths use the same lexical relative keys as
+  missing and stale, so a symlink `generated/` directory no longer
+  reports every expected file as extra. Kernel tests cover leftover,
+  missing, stale, and symlink cases.
+
 ## [1.7.0] — 2026-10-23
 
 ### Changed

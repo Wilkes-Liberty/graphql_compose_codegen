@@ -7,12 +7,18 @@ namespace Drupal\Tests\graphql_compose_codegen\Kernel;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\graphql_compose_codegen\Drush\Commands\CodegenCommands;
+use Drupal\graphql_compose_codegen\Service\ArtefactSnapshot;
+use Drupal\graphql_compose_codegen\Service\TypeScriptGenerator;
 use Drupal\node\Entity\NodeType;
+use Drush\Log\DrushLoggerManager;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\BufferedOutput;
 
 /**
- * Kernel tests for generator output and gqcc:generate snapshot honesty.
+ * Kernel tests for generator output, snapshot honesty, and gqcc:validate.
  *
  * @group graphql_compose_codegen
  *
@@ -186,6 +192,288 @@ final class CodegenCommandsKernelTest extends KernelTestBase {
       'field_tagline',
       $skipped['types.generated.d.ts'],
     );
+  }
+
+  /**
+   * A leftover file under generated/ must fail validate (not print-and-pass).
+   *
+   * The generate command never deletes removed artefacts. Counting only
+   * missing + stale left CI green after EXTRA: lines for a deleted bundle.
+   */
+  public function testValidateFailsOnLeftoverArtefact(): void {
+    $artefacts = $this->artefacts();
+    $paths = $this->writeGenerated($artefacts);
+    // Deleted-bundle leftover: not in $current, still on disk.
+    $leftover = 'components/Retired.generated.tsx';
+    $this->writeFile($paths['gen'] . '/' . $leftover, "// leftover stub\n");
+
+    $report = $this->snapshot()->compareDisk($paths['gen'], $artefacts);
+    self::assertSame([], $report['missing']);
+    self::assertSame([], $report['stale']);
+    self::assertSame([$leftover], $report['extra']);
+
+    $result = $this->runValidate($paths['root']);
+    self::assertSame(CodegenCommands::EXIT_FAILURE, $result['status']);
+    self::assertStringContainsString('EXTRA:   ' . $leftover, $result['output']);
+    self::assertStringNotContainsString(
+      'in sync with the live schema',
+      $result['logs'],
+    );
+  }
+
+  /**
+   * A missing expected artefact must still fail validate.
+   */
+  public function testValidateFailsOnMissingArtefact(): void {
+    $artefacts = $this->artefacts();
+    $paths = $this->writeGenerated($artefacts);
+    $missing = array_key_first($artefacts);
+    self::assertIsString($missing);
+    self::assertTrue(unlink($paths['gen'] . '/' . $missing));
+
+    $report = $this->snapshot()->compareDisk($paths['gen'], $artefacts);
+    self::assertSame([$missing], $report['missing']);
+    self::assertSame([], $report['stale']);
+    self::assertSame([], $report['extra']);
+
+    $result = $this->runValidate($paths['root']);
+    self::assertSame(CodegenCommands::EXIT_FAILURE, $result['status']);
+    self::assertStringContainsString('MISSING: ' . $missing, $result['output']);
+    self::assertStringNotContainsString(
+      'in sync with the live schema',
+      $result['logs'],
+    );
+  }
+
+  /**
+   * A stale expected artefact must still fail validate.
+   */
+  public function testValidateFailsOnStaleArtefact(): void {
+    $artefacts = $this->artefacts();
+    $paths = $this->writeGenerated($artefacts);
+    $stale = array_key_first($artefacts);
+    self::assertIsString($stale);
+    $this->writeFile($paths['gen'] . '/' . $stale, "stale scaffold\n");
+
+    $report = $this->snapshot()->compareDisk($paths['gen'], $artefacts);
+    self::assertSame([], $report['missing']);
+    self::assertSame([$stale], $report['stale']);
+    self::assertSame([], $report['extra']);
+
+    $result = $this->runValidate($paths['root']);
+    self::assertSame(CodegenCommands::EXIT_FAILURE, $result['status']);
+    self::assertStringContainsString('STALE:   ' . $stale, $result['output']);
+    self::assertStringNotContainsString(
+      'in sync with the live schema',
+      $result['logs'],
+    );
+  }
+
+  /**
+   * Matching disk with no leftovers must still succeed.
+   */
+  public function testValidateSucceedsWhenDiskMatches(): void {
+    $artefacts = $this->artefacts();
+    $paths = $this->writeGenerated($artefacts);
+
+    $report = $this->snapshot()->compareDisk($paths['gen'], $artefacts);
+    self::assertSame([], $report['missing']);
+    self::assertSame([], $report['stale']);
+    self::assertSame([], $report['extra']);
+
+    $result = $this->runValidate($paths['root']);
+    self::assertSame(CodegenCommands::EXIT_SUCCESS, $result['status']);
+    self::assertStringContainsString(
+      'in sync with the live schema',
+      $result['logs'],
+    );
+  }
+
+  /**
+   * Extras through a symlink generated/ must use the same $rel as $current.
+   *
+   * Realpath on a file under a symlink generated/ does not start with
+   * the lexical $genDir, so every expected file looked extra.
+   */
+  public function testCompareDiskExtrasUseLexicalPathsThroughSymlink(): void {
+    $artefacts = $this->artefacts();
+    $site = $this->absoluteSiteDir();
+    $realGen = $site . '/gqcc-real/generated';
+    $linkRoot = $site . '/gqcc-link';
+    $linkGen = $linkRoot . '/generated';
+    $this->writeArtefactsTo($realGen, $artefacts);
+    // generated/ is the symlink; compareDisk() is given the link path.
+    self::assertTrue(mkdir($linkRoot, 0777, TRUE) || is_dir($linkRoot));
+    self::assertTrue(symlink($realGen, $linkGen));
+    self::assertTrue(is_link($linkGen));
+
+    $report = $this->snapshot()->compareDisk($linkGen, $artefacts);
+    self::assertSame(
+      [],
+      $report['missing'],
+      'Expected files exist via the symlink.',
+    );
+    self::assertSame([], $report['stale']);
+    self::assertSame(
+      [],
+      $report['extra'],
+      'Expected files must not look extra when generated/ is a symlink.',
+    );
+
+    $leftover = 'components/Retired.generated.tsx';
+    $this->writeFile($linkGen . '/' . $leftover, "// leftover stub\n");
+    $report = $this->snapshot()->compareDisk($linkGen, $artefacts);
+    self::assertSame([$leftover], $report['extra']);
+    // getRealPath() extras were absolute; $current keys never start with /.
+    self::assertFalse(
+      str_starts_with($report['extra'][0], '/'),
+      'Extra paths must stay relative, not realpath() absolute.',
+    );
+
+    $result = $this->runValidate($linkRoot);
+    self::assertSame(CodegenCommands::EXIT_FAILURE, $result['status']);
+    self::assertStringContainsString('EXTRA:   ' . $leftover, $result['output']);
+    self::assertStringNotContainsString(
+      'in sync with the live schema',
+      $result['logs'],
+    );
+  }
+
+  /**
+   * Expected artefacts for the demo fixture.
+   *
+   * @return array<string, string>
+   *   Relative path → generator content.
+   */
+  private function artefacts(): array {
+    $artefacts = $this->generator()->buildArtefacts(['demo']);
+    self::assertNotEmpty($artefacts);
+    return $artefacts;
+  }
+
+  /**
+   * Writes $artefacts under {site}/gqcc-ui/generated.
+   *
+   * @param array<string, string> $artefacts
+   *   Relative path → file content.
+   *
+   * @return array{root: string, gen: string}
+   *   Next.js root (validate --output-dir) and the generated directory.
+   */
+  private function writeGenerated(array $artefacts): array {
+    $root = $this->absoluteSiteDir() . '/gqcc-ui';
+    $gen = $root . '/generated';
+    $this->writeArtefactsTo($gen, $artefacts);
+    return ['root' => $root, 'gen' => $gen];
+  }
+
+  /**
+   * Writes each artefact under $genDir, creating parent directories.
+   *
+   * @param string $genDir
+   *   Absolute generated directory.
+   * @param array<string, string> $artefacts
+   *   Relative path → file content.
+   */
+  private function writeArtefactsTo(string $genDir, array $artefacts): void {
+    foreach ($artefacts as $rel => $content) {
+      $this->writeFile($genDir . '/' . $rel, $content . "\n");
+    }
+  }
+
+  /**
+   * Writes $contents to $absolute, creating parent directories.
+   *
+   * @param string $absolute
+   *   Absolute file path.
+   * @param string $contents
+   *   File contents.
+   */
+  private function writeFile(string $absolute, string $contents): void {
+    $dir = dirname($absolute);
+    if (!is_dir($dir) && !mkdir($dir, 0777, TRUE) && !is_dir($dir)) {
+      self::fail("Could not create {$dir}");
+    }
+    self::assertNotFalse(file_put_contents($absolute, $contents));
+  }
+
+  /**
+   * Absolute site directory (KernelTestBase may store a relative path).
+   *
+   * @return string
+   *   Absolute path to this test's site directory.
+   */
+  private function absoluteSiteDir(): string {
+    $siteDir = $this->siteDirectory;
+    if (!str_starts_with($siteDir, '/')) {
+      $siteDir = DRUPAL_ROOT . '/' . $siteDir;
+    }
+    return $siteDir;
+  }
+
+  /**
+   * Runs validate() against $outputDir and captures exit, stdout, logs.
+   *
+   * @param string $outputDir
+   *   Next.js project root (artefacts live in {outputDir}/generated).
+   *
+   * @return array{status: int, output: string, logs: string}
+   *   Exit code, captured writeln() output, and logger success/error text.
+   */
+  private function runValidate(string $outputDir): array {
+    $output = new BufferedOutput();
+    $logger = new RecordingDrushLogger();
+
+    $commands = new CodegenCommands(
+      $this->container->get('graphql_compose_codegen.schema_inspector'),
+      $this->generator(),
+      $this->snapshot(),
+      $this->container->get('graphql_compose_codegen.path_guard'),
+      $this->container->get('module_handler'),
+      $this->container->get('config.factory'),
+    );
+    // Robo IO (Drush 12/13) writes through setOutput(); input is unused
+    // by validate() but io() construction reads it if a style is built.
+    $commands->setOutput($output);
+    $commands->setInput(new ArrayInput([]));
+    // logger() is typed as DrushLoggerManager on Drush 13.
+    $manager = new DrushLoggerManager();
+    $manager->add('test', $logger);
+    $commands->setLogger($manager);
+
+    $status = $commands->validate([
+      'bundles' => 'demo',
+      'output-dir' => $outputDir,
+      'skip-fields' => '',
+      // siteDirectory can sit outside the composer project root in CI.
+      'allow-external' => TRUE,
+    ]);
+
+    return [
+      'status' => $status,
+      'output' => $output->fetch(),
+      'logs' => implode("\n", $logger->lines),
+    ];
+  }
+
+  /**
+   * The generator service.
+   *
+   * @return \Drupal\graphql_compose_codegen\Service\TypeScriptGenerator
+   *   The TypeScript generator.
+   */
+  private function generator(): TypeScriptGenerator {
+    return $this->container->get('graphql_compose_codegen.typescript_generator');
+  }
+
+  /**
+   * The snapshot service.
+   *
+   * @return \Drupal\graphql_compose_codegen\Service\ArtefactSnapshot
+   *   The artefact snapshot service.
+   */
+  private function snapshot(): ArtefactSnapshot {
+    return $this->container->get('graphql_compose_codegen.artefact_snapshot');
   }
 
 }

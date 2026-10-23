@@ -120,6 +120,11 @@ final class ArtefactSnapshot {
   /**
    * Compares artefacts on disk to the current expected artefact set.
    *
+   * Extra paths use the same lexical $rel keys as missing and stale
+   * ($genDir . '/' . $rel). realpath() is not used for extras: if
+   * generated/ is a symlink, the resolved prefix no longer matches
+   * $genDir and every expected file would be reported as extra.
+   *
    * @param string $genDir
    *   Absolute directory containing previously-written generated files.
    * @param array<string, string> $current
@@ -144,15 +149,17 @@ final class ArtefactSnapshot {
       }
     }
 
-    // Extras: any file in $genDir that's not in the current artefact set.
+    // Leftovers: any file under $genDir that is not in $current.
     $extra = [];
     if (is_dir($genDir)) {
-      $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($genDir, \FilesystemIterator::SKIP_DOTS));
+      $iterator = new \RecursiveIteratorIterator(
+        new \RecursiveDirectoryIterator($genDir, \FilesystemIterator::SKIP_DOTS),
+      );
       foreach ($iterator as $info) {
         if (!$info->isFile()) {
           continue;
         }
-        $rel = ltrim(str_replace($genDir, '', (string) $info->getRealPath()), '/');
+        $rel = $this->relativeToGenDir($genDir, $info);
         if (!isset($current[$rel])) {
           $extra[] = $rel;
         }
@@ -164,6 +171,41 @@ final class ArtefactSnapshot {
       'extra' => $extra,
       'stale' => $stale,
     ];
+  }
+
+  /**
+   * Relative path of a file under $genDir, matching keys in $current.
+   *
+   * Prefer the iterator pathname (lexical $genDir prefix). Fall back to
+   * realpath only to recover the suffix when the iterator resolved a
+   * symlink start directory; extras still share $rel with missing/stale.
+   *
+   * @param string $genDir
+   *   Absolute generated directory as passed to compareDisk().
+   * @param \SplFileInfo $info
+   *   A file found while walking $genDir.
+   *
+   * @return string
+   *   Path relative to $genDir, using forward-slash separators.
+   */
+  private function relativeToGenDir(string $genDir, \SplFileInfo $info): string {
+    $prefix = rtrim($genDir, '/') . '/';
+    $absolute = $info->getPathname();
+    if (str_starts_with($absolute, $prefix)) {
+      return substr($absolute, strlen($prefix));
+    }
+
+    // Iterator resolved a symlink $genDir; map the real file back to $rel.
+    $resolvedDir = realpath($genDir);
+    $resolvedFile = $info->getRealPath();
+    if ($resolvedDir !== FALSE && $resolvedFile !== FALSE) {
+      $resolvedPrefix = rtrim($resolvedDir, '/') . '/';
+      if (str_starts_with($resolvedFile, $resolvedPrefix)) {
+        return substr($resolvedFile, strlen($resolvedPrefix));
+      }
+    }
+
+    return ltrim(str_replace($genDir, '', $absolute), '/');
   }
 
 }

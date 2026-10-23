@@ -257,7 +257,11 @@ final class CodegenCommands extends DrushCommands {
     $current = $this->generator->buildArtefacts($only, $skip);
 
     $report = $this->snapshot->compareDisk($outputDir . '/generated', $current);
-    $bad = count($report['missing']) + count($report['stale']);
+    // Leftovers count: generate() never deletes removed artefacts, so a
+    // deleted bundle would otherwise leave CI green after EXTRA: lines.
+    $bad = count($report['missing'])
+      + count($report['stale'])
+      + count($report['extra']);
 
     foreach ($report['missing'] as $p) {
       $this->output()->writeln("  MISSING: {$p}");
