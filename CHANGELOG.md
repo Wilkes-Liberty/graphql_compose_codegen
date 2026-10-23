@@ -9,6 +9,8 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+## [1.7.0] — 2026-10-23
+
 ### Changed
 
 - Inspector and generator internals with no out-of-class callers are
