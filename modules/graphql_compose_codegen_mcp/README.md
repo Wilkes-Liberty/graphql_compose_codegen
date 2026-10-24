@@ -47,5 +47,3 @@ Enabling this module does not grant permissions or publish unauthenticated tools
 Preview never invokes file-writing commands, generation lifecycle hooks, or
 snapshot recording. The diff reports a missing baseline explicitly. Failures
 exclude schema values, mapper exception details, and local paths.
-
-Issue: https://www.drupal.org/project/graphql_compose_codegen/issues/3623734

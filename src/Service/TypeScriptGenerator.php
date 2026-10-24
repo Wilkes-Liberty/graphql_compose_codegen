@@ -91,10 +91,12 @@ BANNER;
         'union_mode' => 'commented_extend',
         'union_banner' => '// ── Extend DrupalNode union ─────────────────────────────────────────────────',
         'union_name' => 'DrupalNode',
+        // Point at the integrator's own NodeUnion spreads. NodePlatform is a
+        // site-specific bundle, not a graphql_compose default.
         'fragments_banners' => [
           '// ── Merge the following into lib/queries/node-by-path.ts ─────────────────────',
           '// Inside the NODE_BY_PATH_QUERY template literal, add each block to the',
-          '// NodeUnion spread (after the existing `... on NodePlatform { ... }` blocks).',
+          '// NodeUnion spread (after your existing NodeUnion spreads).',
         ],
         'fragment_common_line' => '  ${COMMON_NODE_FIELDS}',
         'skip_child_only' => FALSE,
