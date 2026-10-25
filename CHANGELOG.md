@@ -9,6 +9,14 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+### Changed
+
+- Generated fragment banners, `gqcc:inspect` usage, and README examples
+  use generic Article/Page and NodeUnion wording instead of the estate
+  `NodePlatform` and `platform,service` copy. The MCP README drops the
+  shipped #3623734 ticket line. The main README heading is now
+  "Deferred ideas".
+
 ### Fixed
 
 - `gqcc:validate` exits non-zero when leftover files remain under

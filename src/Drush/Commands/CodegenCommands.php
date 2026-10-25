@@ -47,6 +47,9 @@ final class CodegenCommands extends DrushCommands {
 
   /**
    * Lists all node + paragraph bundles and their extra fields.
+   *
+   * The --bundles usage example uses article,page (graphql_compose
+   * defaults) rather than estate-specific IDs such as platform,service.
    */
   #[CLI\Command(
     name: 'graphql-compose-codegen:inspect',
@@ -55,7 +58,7 @@ final class CodegenCommands extends DrushCommands {
   #[CLI\Option(name: 'bundles', description: 'Comma-separated bundle IDs to inspect (omit for all bundles).')]
   #[CLI\Option(name: 'skip-fields', description: 'Comma-separated additional field names to exclude.')]
   #[CLI\Usage(name: 'drush gqcc:inspect', description: 'List all node and paragraph bundles and their extra fields.')]
-  #[CLI\Usage(name: 'drush gqcc:inspect --bundles=platform,service', description: 'Inspect only the listed bundles.')]
+  #[CLI\Usage(name: 'drush gqcc:inspect --bundles=article,page', description: 'Inspect only the listed bundles.')]
   public function inspect(array $options = ['bundles' => '', 'skip-fields' => '']): void {
     $only = $this->parseList((string) ($options['bundles'] ?? ''));
     $skip = $this->parseList((string) ($options['skip-fields'] ?? ''));

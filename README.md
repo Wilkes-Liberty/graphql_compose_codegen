@@ -84,7 +84,7 @@ output_dir: '/path/to/nextjs'   # PathGuard-legal absolute path (no '..' segment
 
 ```bash
 drush gqcc:inspect
-drush gqcc:inspect --bundles=platform,service
+drush gqcc:inspect --bundles=article,page
 ```
 
 ### Generating scaffold files
@@ -222,7 +222,7 @@ system. See `graphql_compose_codegen.api.php` for `hook_graphql_compose_codegen_
 / `hook_graphql_compose_codegen_post_generate` documentation and the
 `#[FieldTypeMapper]` attribute.
 
-## Roadmap (v1.1+)
+## Deferred ideas
 
 These were considered for v1.0 and deferred:
 

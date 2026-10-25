@@ -97,6 +97,13 @@ final class CodegenCommandsKernelTest extends KernelTestBase {
     self::assertStringContainsString('... on NodeDemo {', $out);
     self::assertStringContainsString('${COMMON_NODE_FIELDS}', $out);
     self::assertStringContainsString('tagline', $out);
+    // NodePlatform is an estate bundle. The fragments banner must stay
+    // generic so integrators do not copy that type into a new site.
+    self::assertStringContainsString(
+      'after your existing NodeUnion spreads',
+      $out,
+    );
+    self::assertStringNotContainsString('NodePlatform', $out);
   }
 
   /**
