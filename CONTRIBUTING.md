@@ -370,3 +370,8 @@ git push -u origin 2.x
 Then update the default branch on drupal.org's GitLab project settings to
 `2.x`. Keep `1.x` open for security and critical bug backports for at
 least one release cycle.
+
+## Changelog fragments
+
+Follow [the changelog workflow](.github/CHANGELOG.md) for independent PR notes
+and lossless release compilation. Existing opt-in entry policy is unchanged.
