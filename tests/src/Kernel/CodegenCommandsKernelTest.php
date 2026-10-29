@@ -18,7 +18,7 @@ use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\BufferedOutput;
 
 /**
- * Kernel tests for generator output, snapshot honesty, and gqcc:validate.
+ * Kernel tests for generator output, snapshot honesty, and Drush exits.
  *
  * @group graphql_compose_codegen
  *
@@ -277,6 +277,69 @@ final class CodegenCommandsKernelTest extends KernelTestBase {
   }
 
   /**
+   * All-skipped generate (no --overwrite) must not print a write banner.
+   *
+   * The emitFiles() helper used to log "Skipped (exists)" and still
+   * print "✓ Scaffold written". generate() is the write command; a
+   * second run that touched nothing is not a successful write.
+   */
+  public function testGenerateDoesNotClaimWriteWhenAllSkipped(): void {
+    $artefacts = $this->artefacts();
+    $paths = $this->writeGenerated($artefacts);
+
+    $result = $this->runGenerate($paths['root']);
+    self::assertSame(CodegenCommands::EXIT_SUCCESS, $result['status']);
+    self::assertStringNotContainsString('✓ Scaffold written', $result['output']);
+    self::assertStringNotContainsString('Scaffold written to', $result['output']);
+    self::assertStringContainsString(
+      sprintf('Written: 0  Skipped: %d  Failed: 0', count($artefacts)),
+      $result['output'],
+    );
+    self::assertStringContainsString('Skipped (exists)', $result['logs']);
+  }
+
+  /**
+   * Unwritable generated/ must fail generate and must not claim a write.
+   *
+   * A file at generated/ makes every mkdir($genDir) fail. chmod on a
+   * directory is not enough when the test runner is root.
+   */
+  public function testGenerateFailsWhenGeneratedUnwritable(): void {
+    $artefacts = $this->artefacts();
+    $root = $this->absoluteSiteDir() . '/gqcc-ui';
+    self::assertTrue(mkdir($root, 0777, TRUE) || is_dir($root));
+    self::assertNotFalse(file_put_contents($root . '/generated', "not a directory\n"));
+
+    $result = $this->runGenerate($root);
+    self::assertSame(CodegenCommands::EXIT_FAILURE, $result['status']);
+    self::assertStringNotContainsString('✓ Scaffold written', $result['output']);
+    self::assertStringNotContainsString('Scaffold written to', $result['output']);
+    self::assertStringContainsString(
+      sprintf('Written: 0  Skipped: 0  Failed: %d', count($artefacts)),
+      $result['output'],
+    );
+    self::assertStringContainsString('Could not create directory', $result['logs']);
+    self::assertStringContainsString('failed to write', $result['logs']);
+  }
+
+  /**
+   * First write still reports a written summary and exits zero.
+   */
+  public function testGenerateReportsWrittenSummaryOnSuccess(): void {
+    $artefacts = $this->artefacts();
+    $root = $this->absoluteSiteDir() . '/gqcc-ui';
+
+    $result = $this->runGenerate($root);
+    self::assertSame(CodegenCommands::EXIT_SUCCESS, $result['status']);
+    self::assertStringContainsString('Scaffold written to', $result['output']);
+    self::assertStringContainsString(
+      sprintf('Written: %d  Skipped: 0  Failed: 0', count($artefacts)),
+      $result['output'],
+    );
+    self::assertStringContainsString('Written:', $result['logs']);
+  }
+
+  /**
    * Matching disk with no leftovers must still succeed.
    */
   public function testValidateSucceedsWhenDiskMatches(): void {
@@ -419,6 +482,39 @@ final class CodegenCommandsKernelTest extends KernelTestBase {
   }
 
   /**
+   * Runs generate() against $outputDir and captures exit, stdout, logs.
+   *
+   * @param string $outputDir
+   *   Next.js project root (artefacts live in {outputDir}/generated).
+   * @param bool $overwrite
+   *   Whether to pass --overwrite.
+   *
+   * @return array{status: int, output: string, logs: string}
+   *   Exit code, captured writeln() output, and logger success/error text.
+   */
+  private function runGenerate(string $outputDir, bool $overwrite = FALSE): array {
+    $output = new BufferedOutput();
+    $logger = new RecordingDrushLogger();
+    $commands = $this->commands($output, $logger);
+
+    $status = $commands->generate([
+      'bundles' => 'demo',
+      'output-dir' => $outputDir,
+      'overwrite' => $overwrite,
+      'skip-fields' => '',
+      'dry-run' => FALSE,
+      // siteDirectory can sit outside the composer project root in CI.
+      'allow-external' => TRUE,
+    ]);
+
+    return [
+      'status' => $status,
+      'output' => $output->fetch(),
+      'logs' => implode("\n", $logger->lines),
+    ];
+  }
+
+  /**
    * Runs validate() against $outputDir and captures exit, stdout, logs.
    *
    * @param string $outputDir
@@ -430,23 +526,7 @@ final class CodegenCommandsKernelTest extends KernelTestBase {
   private function runValidate(string $outputDir): array {
     $output = new BufferedOutput();
     $logger = new RecordingDrushLogger();
-
-    $commands = new CodegenCommands(
-      $this->container->get('graphql_compose_codegen.schema_inspector'),
-      $this->generator(),
-      $this->snapshot(),
-      $this->container->get('graphql_compose_codegen.path_guard'),
-      $this->container->get('module_handler'),
-      $this->container->get('config.factory'),
-    );
-    // Robo IO (Drush 12/13) writes through setOutput(); input is unused
-    // by validate() but io() construction reads it if a style is built.
-    $commands->setOutput($output);
-    $commands->setInput(new ArrayInput([]));
-    // logger() is typed as DrushLoggerManager on Drush 13.
-    $manager = new DrushLoggerManager();
-    $manager->add('test', $logger);
-    $commands->setLogger($manager);
+    $commands = $this->commands($output, $logger);
 
     $status = $commands->validate([
       'bundles' => 'demo',
@@ -461,6 +541,38 @@ final class CodegenCommandsKernelTest extends KernelTestBase {
       'output' => $output->fetch(),
       'logs' => implode("\n", $logger->lines),
     ];
+  }
+
+  /**
+   * Instantiates CodegenCommands wired to captured output and logs.
+   *
+   * @param \Symfony\Component\Console\Output\BufferedOutput $output
+   *   Capture for writeln() banners.
+   * @param \Drupal\Tests\graphql_compose_codegen\Kernel\RecordingDrushLogger $logger
+   *   Capture for logger success/warning/error lines.
+   *
+   * @return \Drupal\graphql_compose_codegen\Drush\Commands\CodegenCommands
+   *   Command object ready for generate() or validate().
+   */
+  private function commands(BufferedOutput $output, RecordingDrushLogger $logger): CodegenCommands {
+    $commands = new CodegenCommands(
+      $this->container->get('graphql_compose_codegen.schema_inspector'),
+      $this->generator(),
+      $this->snapshot(),
+      $this->container->get('graphql_compose_codegen.path_guard'),
+      $this->container->get('module_handler'),
+      $this->container->get('config.factory'),
+    );
+    // Robo IO (Drush 12/13) writes through setOutput(); input is unused
+    // by generate()/validate() but io() construction reads it if a
+    // style is built.
+    $commands->setOutput($output);
+    $commands->setInput(new ArrayInput([]));
+    // logger() is typed as DrushLoggerManager on Drush 13.
+    $manager = new DrushLoggerManager();
+    $manager->add('test', $logger);
+    $commands->setLogger($manager);
+    return $commands;
   }
 
   /**
