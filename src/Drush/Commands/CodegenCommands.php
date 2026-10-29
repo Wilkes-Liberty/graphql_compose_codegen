@@ -356,7 +356,10 @@ final class CodegenCommands extends DrushCommands {
         continue;
       }
 
-      if (!is_dir($dir) && !mkdir($dir, 0755, TRUE) && !is_dir($dir)) {
+      // Suppress the PHP warning when $dir exists as a file or is not
+      // writable. The return value plus is_dir() is the real check;
+      // PHPUnit 11 (failOnWarning) must not see the warning.
+      if (!is_dir($dir) && !@mkdir($dir, 0755, TRUE) && !is_dir($dir)) {
         $this->logger()->error("Could not create directory: {$dir}");
         $failed++;
         continue;
@@ -378,7 +381,9 @@ final class CodegenCommands extends DrushCommands {
         }
       }
 
-      if (file_put_contents($absPath, $content . "\n") === FALSE) {
+      // Inspect the return value; a warning here would fail PHPUnit
+      // with failOnWarning even though we already treat FALSE as fail.
+      if (@file_put_contents($absPath, $content . "\n") === FALSE) {
         $this->logger()->error("Failed to write: {$absPath}");
         $failed++;
         continue;
