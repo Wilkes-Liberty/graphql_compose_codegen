@@ -110,6 +110,17 @@ final class CodegenCommands extends DrushCommands {
 
   /**
    * Generates TypeScript scaffold artefacts.
+   *
+   * Exits non-zero when a mkdir or write fails. A skip-only run
+   * (existing files, no --overwrite) is still success, but it does
+   * not print a written banner.
+   *
+   * @param array $options
+   *   Command options (bundles, output-dir, overwrite, skip-fields,
+   *   dry-run, allow-external).
+   *
+   * @return int
+   *   EXIT_SUCCESS, or EXIT_FAILURE when any artefact write failed.
    */
   #[CLI\Command(
     name: 'graphql-compose-codegen:generate',
@@ -133,7 +144,7 @@ final class CodegenCommands extends DrushCommands {
       'dry-run' => FALSE,
       'allow-external' => FALSE,
     ],
-  ): void {
+  ): int {
     $only = $this->parseList((string) ($options['bundles'] ?? ''));
     $skip = $this->parseList((string) ($options['skip-fields'] ?? ''));
     $outputDir = rtrim((string) ($options['output-dir'] ?? ''), '/');
@@ -158,7 +169,7 @@ final class CodegenCommands extends DrushCommands {
     $paragraphBundles = $this->inspector->getBundlesFor('paragraph', $only);
     if (!$bundleInfo && !$paragraphBundles) {
       $this->logger()->warning('No matching bundles found.');
-      return;
+      return self::EXIT_SUCCESS;
     }
 
     $artefacts = $this->generator->buildArtefacts($only, $skip);
@@ -172,11 +183,15 @@ final class CodegenCommands extends DrushCommands {
     ];
     $this->moduleHandler->invokeAll('graphql_compose_codegen_pre_generate', [$context]);
 
+    // Write failures are the only generate() error. Skips are expected
+    // on a second run without --overwrite; they must not flip the exit.
+    $writeFailed = FALSE;
     if (!$outputDir) {
       $this->emitStdout($artefacts);
     }
     else {
-      $this->emitFiles($artefacts, $outputDir . '/generated', $overwrite, $dryRun);
+      $counts = $this->emitFiles($artefacts, $outputDir . '/generated', $overwrite, $dryRun);
+      $writeFailed = $counts['failed'] > 0;
       if (!$dryRun) {
         // Hash what is on disk, not the desired set: emitFiles() skips
         // existing paths when --overwrite is off (and failed writes).
@@ -186,6 +201,8 @@ final class CodegenCommands extends DrushCommands {
 
     $context['artefacts'] = $artefacts;
     $this->moduleHandler->invokeAll('graphql_compose_codegen_post_generate', [$context]);
+
+    return $writeFailed ? self::EXIT_FAILURE : self::EXIT_SUCCESS;
   }
 
   /**
@@ -307,6 +324,12 @@ final class CodegenCommands extends DrushCommands {
   /**
    * Writes artefacts to disk under the given generated directory.
    *
+   * Returns written/skipped/failed counts so generate() can print an
+   * honest summary. The old path logged mkdir/write errors and
+   * "Skipped (exists)", then always printed "✓ Scaffold written".
+   * Skips (exists without --overwrite, or unchanged content) are not
+   * failures; mkdir and file_put_contents errors are.
+   *
    * @param array<string, string> $artefacts
    *   Relative path to artefact content.
    * @param string $genDir
@@ -315,8 +338,15 @@ final class CodegenCommands extends DrushCommands {
    *   Whether to overwrite existing files.
    * @param bool $dryRun
    *   If TRUE, only log what would be written.
+   *
+   * @return array{written: int, skipped: int, failed: int}
+   *   Outcome counts. Dry-run returns zeros and prints no summary.
    */
-  private function emitFiles(array $artefacts, string $genDir, bool $overwrite, bool $dryRun): void {
+  private function emitFiles(array $artefacts, string $genDir, bool $overwrite, bool $dryRun): array {
+    $written = 0;
+    $skipped = 0;
+    $failed = 0;
+
     foreach ($artefacts as $relPath => $content) {
       $absPath = $genDir . '/' . $relPath;
       $dir = dirname($absPath);
@@ -328,11 +358,13 @@ final class CodegenCommands extends DrushCommands {
 
       if (!is_dir($dir) && !mkdir($dir, 0755, TRUE) && !is_dir($dir)) {
         $this->logger()->error("Could not create directory: {$dir}");
+        $failed++;
         continue;
       }
 
       if (file_exists($absPath) && !$overwrite) {
         $this->logger()->warning("Skipped (exists): {$relPath}  — use --overwrite to regenerate.");
+        $skipped++;
         continue;
       }
 
@@ -341,21 +373,49 @@ final class CodegenCommands extends DrushCommands {
         $onDisk = file_get_contents($absPath);
         if (rtrim($onDisk ?: '', "\n") === rtrim($content, "\n")) {
           $this->logger()->notice("Unchanged: {$relPath}");
+          $skipped++;
           continue;
         }
       }
 
       if (file_put_contents($absPath, $content . "\n") === FALSE) {
         $this->logger()->error("Failed to write: {$absPath}");
+        $failed++;
         continue;
       }
       $this->logger()->success("Written: {$relPath}");
+      $written++;
     }
 
     if (!$dryRun) {
       $this->output()->writeln('');
-      $this->output()->writeln("✓ Scaffold written to: <info>{$genDir}</info>");
+      $this->output()->writeln(sprintf(
+        '  Written: %d  Skipped: %d  Failed: %d',
+        $written,
+        $skipped,
+        $failed,
+      ));
+      // Only claim a write when at least one file landed and none
+      // failed. A skip-only second run used to print the checkmark
+      // anyway; that is the sibling of validate() printing EXTRA and
+      // still exiting 0 (#73).
+      if ($failed === 0 && $written > 0) {
+        $this->output()->writeln("  Scaffold written to: <info>{$genDir}</info>");
+      }
+      elseif ($failed > 0) {
+        $this->logger()->error(sprintf(
+          '%d file(s) failed to write under %s.',
+          $failed,
+          $genDir,
+        ));
+      }
     }
+
+    return [
+      'written' => $written,
+      'skipped' => $skipped,
+      'failed' => $failed,
+    ];
   }
 
   /**
