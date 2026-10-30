@@ -299,13 +299,21 @@ final class CodegenCommandsKernelTest extends KernelTestBase {
   }
 
   /**
-   * Unwritable generated/ must fail generate and must not claim a write.
+   * Unwritable generated/ must fail generate and keep the last snapshot.
    *
    * A file at generated/ makes every mkdir($genDir) fail. chmod on a
-   * directory is not enough when the test runner is root.
+   * directory is not enough when the test runner is root. recordFromDisk()
+   * would hash nothing and replace last_snapshot with an empty map.
    */
   public function testGenerateFailsWhenGeneratedUnwritable(): void {
     $artefacts = $this->artefacts();
+    $snapshot = $this->snapshot();
+    // Seed the last successful baseline. A failed generate must leave it.
+    $snapshot->record($artefacts);
+    $before = $snapshot->load();
+    self::assertIsArray($before);
+    self::assertNotSame([], $before['hashes']);
+
     $root = $this->absoluteSiteDir() . '/gqcc-ui';
     self::assertTrue(mkdir($root, 0777, TRUE) || is_dir($root));
     self::assertNotFalse(file_put_contents($root . '/generated', "not a directory\n"));
@@ -320,6 +328,11 @@ final class CodegenCommandsKernelTest extends KernelTestBase {
     );
     self::assertStringContainsString('Could not create directory', $result['logs']);
     self::assertStringContainsString('failed to write', $result['logs']);
+    self::assertSame(
+      $before,
+      $snapshot->load(),
+      'A failed generate must not replace the last successful snapshot.',
+    );
   }
 
   /**
