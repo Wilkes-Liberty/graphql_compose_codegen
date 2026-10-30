@@ -9,21 +9,23 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
-### Changed
+## [1.7.1] - 2026-10-29
 
+### Changed
 - Generated fragment banners, `gqcc:inspect` usage, and README examples
   use generic Article/Page and NodeUnion wording instead of the estate
   `NodePlatform` and `platform,service` copy. The MCP README drops the
   shipped #3623734 ticket line. The main README heading is now
   "Deferred ideas".
+- Use independent changelog fragments for pull requests and the shared validator for lossless release preparation.
 
 ### Fixed
-
 - `gqcc:validate` exits non-zero when leftover files remain under
   `generated/`. Extra paths use the same lexical relative keys as
   missing and stale, so a symlink `generated/` directory no longer
   reports every expected file as extra. Kernel tests cover leftover,
   missing, stale, and symlink cases.
+- `gqcc:generate` prints a written/skipped/failed summary instead of an unconditional success banner, and exits non-zero when a mkdir or write fails. A skip-only run without `--overwrite` no longer claims the scaffold was written.
 
 ## [1.7.0] — 2026-10-23
 
