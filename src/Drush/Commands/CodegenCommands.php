@@ -113,7 +113,8 @@ final class CodegenCommands extends DrushCommands {
    *
    * Exits non-zero when a mkdir or write fails. A skip-only run
    * (existing files, no --overwrite) is still success, but it does
-   * not print a written banner.
+   * not print a written banner. A failed write does not replace
+   * the last successful snapshot.
    *
    * @param array $options
    *   Command options (bundles, output-dir, overwrite, skip-fields,
@@ -192,9 +193,10 @@ final class CodegenCommands extends DrushCommands {
     else {
       $counts = $this->emitFiles($artefacts, $outputDir . '/generated', $overwrite, $dryRun);
       $writeFailed = $counts['failed'] > 0;
-      if (!$dryRun) {
-        // Hash what is on disk, not the desired set: emitFiles() skips
-        // existing paths when --overwrite is off (and failed writes).
+      // Skip-only still records disk (hashes of files that already
+      // exist). A failed write must not: recordFromDisk() would persist
+      // an empty map over last_snapshot and gqcc:diff would lie.
+      if (!$dryRun && !$writeFailed) {
         $this->snapshot->recordFromDisk($outputDir . '/generated', $artefacts);
       }
     }
@@ -400,10 +402,7 @@ final class CodegenCommands extends DrushCommands {
         $skipped,
         $failed,
       ));
-      // Only claim a write when at least one file landed and none
-      // failed. A skip-only second run used to print the checkmark
-      // anyway; that is the sibling of validate() printing EXTRA and
-      // still exiting 0 (#73).
+      // Skip-only must not print the written banner.
       if ($failed === 0 && $written > 0) {
         $this->output()->writeln("  Scaffold written to: <info>{$genDir}</info>");
       }
