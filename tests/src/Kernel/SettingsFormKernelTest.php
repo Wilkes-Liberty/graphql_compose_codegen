@@ -66,6 +66,7 @@ final class SettingsFormKernelTest extends KernelTestBase {
     $form_state = $this->submitSettings($form, [
       'base_ts_type' => 'SharedFields',
       'base_type_fields' => "title\npath",
+      // Relative paths resolve under Drupal root and must stay legal.
       'output_dir' => 'frontend/generated',
     ]);
 
@@ -118,6 +119,82 @@ final class SettingsFormKernelTest extends KernelTestBase {
     $warnings = \Drupal::messenger()->messagesByType(MessengerInterface::TYPE_WARNING);
     self::assertNotEmpty($warnings);
     self::assertStringContainsString('field_does_not_exist', (string) reset($warnings));
+  }
+
+  /**
+   * An empty output_dir stays legal (stdout / use --output-dir).
+   */
+  public function testBlankOutputDirStillSaves(): void {
+    $form_state = $this->submitSettings($this->settingsForm(), [
+      'base_ts_type' => 'SharedFields',
+      'base_type_fields' => "title\npath",
+      'output_dir' => '',
+    ]);
+
+    self::assertFalse($form_state->hasAnyErrors(), print_r($form_state->getErrors(), TRUE));
+
+    $config = $this->config('graphql_compose_codegen.settings');
+    self::assertSame('SharedFields', $config->get('base_ts_type'));
+    self::assertSame(['title', 'path'], $config->get('base_type_fields'));
+    self::assertSame('', $config->get('output_dir'));
+  }
+
+  /**
+   * Parent-directory traversal must not write config.
+   */
+  public function testDotDotOutputDirIsRejected(): void {
+    $this->assertOutputDirRejected('..');
+  }
+
+  /**
+   * A dangerous filesystem root must not write config.
+   */
+  public function testEtcOutputDirIsRejected(): void {
+    $this->assertOutputDirRejected('/etc');
+  }
+
+  /**
+   * The filesystem root must not write config.
+   */
+  public function testFilesystemRootOutputDirIsRejected(): void {
+    $this->assertOutputDirRejected('/');
+  }
+
+  /**
+   * An absolute path outside the project must not write config.
+   */
+  public function testOutsideProjectOutputDirIsRejected(): void {
+    $drupalRoot = (string) $this->container->getParameter('app.root');
+    $projectRoot = realpath($drupalRoot . '/..') ?: dirname($drupalRoot);
+    // Sibling of the project root cannot pass PathGuard without
+    // --allow-external, and this form does not offer that flag.
+    $this->assertOutputDirRejected(dirname($projectRoot) . '/gqcc-outside-other-app');
+  }
+
+  /**
+   * Submits an illegal output_dir and asserts install defaults stay put.
+   *
+   * Other fields are valid-but-changed so a missed PathGuard check
+   * cannot hide behind an unchanged save of the install values.
+   *
+   * @param string $outputDir
+   *   A PathGuard-illegal output directory value.
+   */
+  private function assertOutputDirRejected(string $outputDir): void {
+    $form_state = $this->submitSettings($this->settingsForm(), [
+      'base_ts_type' => 'SharedFields',
+      'base_type_fields' => "title\npath",
+      'output_dir' => $outputDir,
+    ]);
+
+    self::assertTrue($form_state->hasAnyErrors());
+    self::assertArrayHasKey('output_dir', $form_state->getErrors());
+
+    // Fail-closed: install defaults must stay put when validation fails.
+    $config = $this->config('graphql_compose_codegen.settings');
+    self::assertSame('NodeCommonFields', $config->get('base_ts_type'));
+    self::assertSame(['title', 'path', 'body'], $config->get('base_type_fields'));
+    self::assertSame('', $config->get('output_dir'));
   }
 
   /**
