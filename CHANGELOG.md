@@ -9,6 +9,12 @@ This project uses Drupal-style version tags (`1.0.0`, `1.0.1`, etc.).
 
 ## [Unreleased]
 
+## [1.7.2] - 2026-11-04
+
+### Fixed
+- `gqcc:generate` no longer replaces `graphql_compose_codegen.last_snapshot` when a mkdir or write fails. `gqcc:diff` and the MCP diff tool keep the last successful baseline.
+- The settings form now rejects PathGuard-illegal `output_dir` values (`..`, `/etc`, `/`, paths outside the project) at save time. An empty directory remains valid (stdout / `--output-dir`).
+
 ## [1.7.1] - 2026-10-29
 
 ### Changed
