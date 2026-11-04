@@ -10,6 +10,7 @@ use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\graphql_compose_codegen\Service\PathGuard;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -33,6 +34,8 @@ final class SettingsForm extends ConfigFormBase {
    *   The entity type bundle information service.
    * @param \Drupal\Core\Entity\EntityFieldManagerInterface $fieldManager
    *   The entity field manager.
+   * @param \Drupal\graphql_compose_codegen\Service\PathGuard $pathGuard
+   *   Output-dir safety guard used by Drush generate/validate.
    */
   public function __construct(
     ConfigFactoryInterface $config_factory,
@@ -41,6 +44,7 @@ final class SettingsForm extends ConfigFormBase {
     // which cannot restore private or readonly properties on unserialize.
     protected EntityTypeBundleInfoInterface $bundleInfo,
     protected EntityFieldManagerInterface $fieldManager,
+    protected PathGuard $pathGuard,
   ) {
     // ConfigFormBase on Drupal 10.2+ / 11 stores these; skipping the parent
     // call leaves typedConfigManager unset and relies on deprecated lazy
@@ -57,6 +61,7 @@ final class SettingsForm extends ConfigFormBase {
       $container->get('config.typed'),
       $container->get('entity_type.bundle.info'),
       $container->get('entity_field.manager'),
+      $container->get('graphql_compose_codegen.path_guard'),
     );
   }
 
@@ -100,7 +105,7 @@ final class SettingsForm extends ConfigFormBase {
     $form['output_dir'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Default output directory'),
-      '#description' => $this->t('Default output directory for generated files. Relative to Drupal root or absolute. Can be overridden with <code>--output-dir</code> on the command line.'),
+      '#description' => $this->t('Default output directory for generated files. Relative to Drupal root or absolute. Leave empty to print to stdout or pass <code>--output-dir</code> at generate time. Saved paths use the same safety checks as <code>drush gqcc:generate</code> (no <code>..</code>, not a dangerous filesystem root, and inside the project).'),
       '#default_value' => (string) ($config->get('output_dir') ?? ''),
     ];
 
@@ -135,6 +140,35 @@ final class SettingsForm extends ConfigFormBase {
         $this->messenger()->addWarning($this->t('These field names are not on any current node bundle: @list. They will still be saved.', [
           '@list' => implode(', ', $unknown),
         ]));
+      }
+    }
+
+    // Empty is legal: stdout / pass --output-dir at generate time.
+    // PathGuard throws on empty, so skip the guard when the field is blank.
+    $outputDir = trim((string) $form_state->getValue('output_dir'));
+    // Persist the trimmed value so submit() stores what we validated.
+    $form_state->setValue('output_dir', $outputDir);
+    if ($outputDir !== '') {
+      try {
+        // No allow-external checkbox on this form. A saved default must
+        // pass the same guard Drush uses without that flag, or generate
+        // only fails later when the command reads config.
+        $this->pathGuard->validate($outputDir);
+      }
+      catch (\InvalidArgumentException $exception) {
+        // PathGuard's outside-root text mentions --allow-external, which
+        // operators cannot pass here. Strip that Drush-only hint.
+        $reason = str_replace(
+          ' Pass --allow-external if this is intentional.',
+          '',
+          $exception->getMessage(),
+        );
+        $form_state->setErrorByName(
+          'output_dir',
+          $this->t('Default output directory is not a safe write path: @reason', [
+            '@reason' => $reason,
+          ]),
+        );
       }
     }
   }

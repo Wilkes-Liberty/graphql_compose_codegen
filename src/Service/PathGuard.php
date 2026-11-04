@@ -7,8 +7,8 @@ namespace Drupal\graphql_compose_codegen\Service;
 /**
  * Validates that an output directory path is safe to write into.
  *
- * Used as a defense-in-depth check against `--output-dir` values that
- * resolve to dangerous filesystem locations.
+ * Used as a defense-in-depth check against `--output-dir` values and
+ * the settings-form default output directory.
  */
 final class PathGuard {
 
